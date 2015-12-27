@@ -28,6 +28,7 @@
 import Control.Monad
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T.Encoding
 
 import Options.Applicative
 import Filesystem.Path.CurrentOS as Path
@@ -40,6 +41,8 @@ import Data.Aeson ((.=), (.:))
 
 import qualified Data.ByteString.Lazy as B
 
+
+import Debug.Trace
 
 -- options passed to 'warp list'
 data ListOptions = ListOptions deriving (Show)
@@ -73,9 +76,18 @@ data WarpData = WarpData {
     warpPoints :: [WarpPoint]
 } deriving (Show)
 
+defaultWarpData :: WarpData
+defaultWarpData = WarpData {
+    warpPoints = []
+}
+
 -- flip function for ease of chaining computations
 (|>) :: a -> (a -> b) -> b
 (|>) = flip ($)
+
+
+filePathToString :: FilePath -> String
+filePathToString = Path.encodeString
 
 warpProgDesc :: String
 warpProgDesc = "use warp to quickly setup warp points and move to these " ++
@@ -95,9 +107,6 @@ main = do
 
 -- Data Loading
 -- """"""""""""
-
-dataFilePath :: String
-dataFilePath = "~/.warpdata"
 
 -- parse warpPoint
 instance JSON.FromJSON WarpPoint where
@@ -126,15 +135,33 @@ dieJSONParseError jsonFilePath err =
     T.pack |>
     Turtle.die
 
-loadData :: FilePath -> IO WarpData
-loadData jsonFilePath = do
-
-    rawInput <- B.readFile (Path.encodeString jsonFilePath)
+decodeWarpData :: FilePath -> IO WarpData
+decodeWarpData jsonFilePath = do
+    rawInput <- B.readFile (filePathToString jsonFilePath)
     let jsonResult = JSON.eitherDecode' rawInput  
 
     case jsonResult of
       Left err -> dieJSONParseError jsonFilePath err
       Right json -> return json
+
+createWarpDataFile :: FilePath -> IO ()
+createWarpDataFile jsonFilePath = saveWarpData jsonFilePath defaultWarpData
+
+loadWarpData :: FilePath -> IO WarpData
+loadWarpData jsonFilePath = do
+    exists <- (Turtle.testfile jsonFilePath)
+    if exists then
+        decodeWarpData jsonFilePath
+    else
+       do
+           createWarpDataFile jsonFilePath
+           return defaultWarpData
+
+saveWarpData :: FilePath -> WarpData -> IO ()
+saveWarpData jsonFilePath warpData = do
+    let dataBytestring = JSON.encode warpData
+    Turtle.touch jsonFilePath
+    B.writeFile (filePathToString jsonFilePath) dataBytestring
 
 -- Common parsers
 -- """"""""""""""
@@ -208,13 +235,30 @@ dieIfFolderNotFound path =
         -- error checking
         when fileExists (needFolderNotFileError path)
         unless folderExists (folderNotFoundError path)
-
        -- we know the folder exists
 
 run :: Command -> IO ()
 run (CommandAdd AddOptions{..}) = do
     dieIfFolderNotFound folderPath
     print "yay, folder exists"
+    print "loding warp data"
+    
+    let warpDataPath = ("/Users/bollu/.warpdata" |> Path.fromText)
 
+    warpData <- loadWarpData warpDataPath
+    absFolderPath <- Turtle.realpath folderPath
+    
+    let newWarpPoint = WarpPoint {
+        name = addname,
+        absFolderPath = filePathToString absFolderPath
+    }
 
+    let newWarpData = WarpData {
+         warpPoints =  newWarpPoint:(warpPoints warpData)   
+    }
+    
+    print newWarpData
+
+    saveWarpData warpDataPath newWarpData
+    
 run command = print command
