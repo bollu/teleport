@@ -23,11 +23,23 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-import Turtle
+
+--import Turtle
+import Prelude hiding (FilePath)
+import qualified Data.Text as T
+
 import Options.Applicative
+import Filesystem.Path.CurrentOS as Path
+
 
 data ListOptions = ListOptions deriving (Show)
-data AddOptions = AddOptions deriving (Show)
+
+
+data AddOptions = AddOptions {
+    folderPath :: FilePath,
+    warpname :: String
+} deriving (Show)
+
 data RemoveOptions = RemoveOptions deriving (Show)
 
 
@@ -36,6 +48,8 @@ data Command = CommandList ListOptions |
                CommandRemove RemoveOptions
     deriving (Show)
 
+(|>) :: a -> (a -> b) -> b
+(|>) = flip ($)
 
 warpProgDesc :: String
 warpProgDesc = "use warp to quickly setup warp points and move to these " ++
@@ -55,12 +69,34 @@ main = do
     run command
 
 
-parseAddOptions :: Parser Command
-parseAddOptions = pure (CommandAdd AddOptions)
+readFolderPath :: String -> ReadM FilePath
+readFolderPath s = T.pack s |> 
+                 Path.fromText |> 
+                 (\path -> if Path.valid path
+                     then return path
+                     else readerError ("invalid path: " ++ (show path)))
+
+parseAddOption :: Parser Command
+parseAddOption =  
+    CommandAdd <$> (AddOptions <$> folderParser <*> warpNameParser) where
+        folderParser = option
+                     (str >>= readFolderPath)
+                     (long "path" <>
+                      short 'p' <>
+                      metavar "FOLDERPATH" <>
+                      help "path of the warp folder to warp to")
+
+        warpNameParser = strOption
+                         (long "name" <>
+                          short 'n' <>
+                          metavar "NAME"
+                          help "name of the warp point for usage")
+
+--parseAddOptions = pure (CommandAdd AddOptions)
 
 parseCommand :: Parser Command
 parseCommand = subparser 
-    (command "add" (info parseAddOptions (progDesc "add a warp point")))
+    (command "add" (info parseAddOption (progDesc "add a warp point")))
 
 run :: Command -> IO ()
 run command = print command
