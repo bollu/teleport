@@ -29,6 +29,8 @@ executable warp-haskell-exe
                      , optparse-applicative
                      , system-filepath
                      , text
+                     , ConfigFile
+                     , configurator
   default-language:    Haskell2010
 
 test-suite warp-haskell-test

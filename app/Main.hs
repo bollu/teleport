@@ -25,32 +25,48 @@
 {-# LANGUAGE RecordWildCards #-}
 
 
---import Turtle
+import Control.Monad
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 
 import Options.Applicative
 import Filesystem.Path.CurrentOS as Path
+import qualified Turtle
+import qualified Data.ConfigFile as Config
 
-
+-- options passed to 'warp list'
 data ListOptions = ListOptions deriving (Show)
 
-
+-- options pased to 'warp add'
 data AddOptions = AddOptions {
     folderPath :: FilePath,
     addname :: String
 } deriving (Show)
 
+-- options passed to 'warp remove'
 data RemoveOptions = RemoveOptions {
     removename :: String
 } deriving (Show)
 
-
+-- the combined datatype representing all warp commands
 data Command = CommandList ListOptions |
                CommandAdd AddOptions |
                CommandRemove RemoveOptions
     deriving (Show)
 
+-- an abstract entity representing a point to which we can warp to
+data WarpPoint = WarpPoint {
+    name :: String,
+    absFolderPath :: String
+} deriving (Show)
+
+
+-- the main config file structure that is loaded
+data WarpConfig = WarpConfig {
+    warpPoints :: [WarpPoint]
+} deriving (Show)
+
+-- flip function for ease of chaining computations
 (|>) :: a -> (a -> b) -> b
 (|>) = flip ($)
 
@@ -61,7 +77,6 @@ warpProgDesc = "use warp to quickly setup warp points and move to these " ++
 warpHeader :: String
 warpHeader = "Warp: move around your filesystem"
 
--- helper takes a parser and adds a help option to it
 
 main :: IO ()
 main = do 
@@ -72,6 +87,20 @@ main = do
     run command
 
 
+-- Config file loading
+-- """""""""""""""""""
+
+--loadConfig configPath = do
+--    cp <- Config.readfile Config.emptyCP configPath 
+--    return cp
+
+-- Data Loading
+-- """"""""""""
+
+
+
+-- Common parsers
+-- """"""""""""""
 readFolderPath :: String -> ReadM FilePath
 readFolderPath s = T.pack s |> 
                  Path.fromText |> 
@@ -80,8 +109,6 @@ readFolderPath s = T.pack s |>
                      else readerError ("invalid path: " ++ (show path)))
 
 
--- Common parsers
--- """"""""""""""
 warpnameParser :: Parser String
 warpnameParser = strOption
                  (long "name" <>
@@ -92,6 +119,7 @@ warpnameParser = strOption
 
 -- Command parsers
 -- """""""""""""""
+
 parseAddCommand :: Parser Command
 parseAddCommand =  
     CommandAdd <$> (AddOptions <$> folderParser <*> warpnameParser) where
@@ -120,6 +148,36 @@ parseCommand = subparser
     (command "remove"
         (info parseRemoveCommand (progDesc "remove a warp point"))))
 
+-- Add command runner
+-- """"""""""""""""""
+
+folderNotFoundError :: FilePath -> IO ()
+folderNotFoundError path = 
+    ("unable to find folder: " ++ (show path)) |>
+    T.pack |>
+    Turtle.die
+
+needFolderNotFileError :: FilePath -> IO ()
+needFolderNotFileError path = 
+    ("expected folder, not file: " ++ (show path)) |>
+    T.pack |>
+    Turtle.die
+
+dieIfFolderNotFound :: FilePath -> IO ()
+dieIfFolderNotFound path = 
+    do
+        folderExists <- Turtle.testdir path
+        fileExists <- Turtle.testfile path
+        -- error checking
+        when fileExists (needFolderNotFileError path)
+        unless folderExists (folderNotFoundError path)
+
+       -- we know the folder exists
+
 run :: Command -> IO ()
-run (CommandAdd AddOptions{..}) = putStrLn  addname
+run (CommandAdd AddOptions{..}) = do
+    dieIfFolderNotFound folderPath
+    print "yay, folder exists"
+
+
 run command = print command
