@@ -32,7 +32,8 @@ import qualified Data.Text as T
 import Options.Applicative
 import Filesystem.Path.CurrentOS as Path
 import qualified Turtle
-import qualified Data.ConfigFile as Config
+import qualified Data.Configurator as Config
+import qualified Text.JSON as JSON
 
 -- options passed to 'warp list'
 data ListOptions = ListOptions deriving (Show)
@@ -61,8 +62,8 @@ data WarpPoint = WarpPoint {
 } deriving (Show)
 
 
--- the main config file structure that is loaded
-data WarpConfig = WarpConfig {
+-- the main data that is loaded from JSON 
+data WarpData = WarpConfig {
     warpPoints :: [WarpPoint]
 } deriving (Show)
 
@@ -90,6 +91,16 @@ main = do
 -- Config file loading
 -- """""""""""""""""""
 
+configFilePath :: String
+configFilePath = "~/.warprc"
+
+createConfig absoluteConfigPath = do
+    Turtle.touch configFilePath
+
+loadConfig absoluteConfigPath = do
+    config <- Config.load [(Config.Required configPath)]
+    Config.display config
+    
 --loadConfig configPath = do
 --    cp <- Config.readfile Config.emptyCP configPath 
 --    return cp
@@ -97,7 +108,24 @@ main = do
 -- Data Loading
 -- """"""""""""
 
+dataFilePath :: String
+dataFilePath = "~/.warpdata"
 
+
+dieJSONParseError :: FilePath -> String -> IO ()
+dieJSONParseError jsonFilePath err = 
+    "parse error in: " ++ (show jsonFilePath) ++
+    "\nerror:------\n" ++ err |>
+    T.pack |>
+    Turtle.die
+
+loadData :: FilePath -> IO WarpData
+loadData path = do
+    rawInput <- Turtle.input path >>= Turtle.strict
+    let jsonResult = JSON.decode rawInput  
+    case jsonResult of
+      Left err -> dieJSONParseError path err
+      Right json -> return json
 
 -- Common parsers
 -- """"""""""""""
