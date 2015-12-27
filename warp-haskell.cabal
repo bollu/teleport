@@ -30,7 +30,8 @@ executable warp-haskell-exe
                      , system-filepath
                      , text
                      , configurator
-                     , json
+                     , aeson
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite warp-haskell-test

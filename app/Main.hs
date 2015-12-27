@@ -31,9 +31,15 @@ import qualified Data.Text as T
 
 import Options.Applicative
 import Filesystem.Path.CurrentOS as Path
+
 import qualified Turtle
-import qualified Data.Configurator as Config
-import qualified Text.JSON as JSON
+--import qualified Data.Configurator as Config
+
+import qualified Data.Aeson as JSON
+import Data.Aeson ((.=), (.:))
+
+import qualified Data.ByteString.Lazy as B
+
 
 -- options passed to 'warp list'
 data ListOptions = ListOptions deriving (Show)
@@ -63,7 +69,7 @@ data WarpPoint = WarpPoint {
 
 
 -- the main data that is loaded from JSON 
-data WarpData = WarpConfig {
+data WarpData = WarpData {
     warpPoints :: [WarpPoint]
 } deriving (Show)
 
@@ -87,44 +93,47 @@ main = do
                         header warpHeader))
     run command
 
-
--- Config file loading
--- """""""""""""""""""
-
-configFilePath :: String
-configFilePath = "~/.warprc"
-
-createConfig absoluteConfigPath = do
-    Turtle.touch configFilePath
-
-loadConfig absoluteConfigPath = do
-    config <- Config.load [(Config.Required configPath)]
-    Config.display config
-    
---loadConfig configPath = do
---    cp <- Config.readfile Config.emptyCP configPath 
---    return cp
-
 -- Data Loading
 -- """"""""""""
 
 dataFilePath :: String
 dataFilePath = "~/.warpdata"
 
+-- parse warpPoint
+instance JSON.FromJSON WarpPoint where
+     parseJSON (JSON.Object v) =
+        WarpPoint <$> v .: "name"
+                  <*> v .: "absFolderPath"
 
-dieJSONParseError :: FilePath -> String -> IO ()
+instance JSON.ToJSON WarpPoint where
+    toJSON (WarpPoint {..}) = 
+        JSON.object [ "name" .= name
+                     ,"absFolderPath" .= absFolderPath]
+
+-- parse warpData
+instance JSON.FromJSON WarpData where
+    parseJSON (JSON.Object v) =
+        WarpData <$> v .: "warpPoints"
+
+instance JSON.ToJSON WarpData where
+    toJSON(WarpData{..}) = 
+        JSON.object ["warpPoints" .= warpPoints]
+
+dieJSONParseError :: FilePath -> String -> IO WarpData
 dieJSONParseError jsonFilePath err = 
-    "parse error in: " ++ (show jsonFilePath) ++
-    "\nerror:------\n" ++ err |>
+    ("parse error in: " ++ (show jsonFilePath) ++
+    "\nerror:------\n" ++ err) |>
     T.pack |>
     Turtle.die
 
 loadData :: FilePath -> IO WarpData
-loadData path = do
-    rawInput <- Turtle.input path >>= Turtle.strict
-    let jsonResult = JSON.decode rawInput  
+loadData jsonFilePath = do
+
+    rawInput <- B.readFile (Path.encodeString jsonFilePath)
+    let jsonResult = JSON.eitherDecode' rawInput  
+
     case jsonResult of
-      Left err -> dieJSONParseError path err
+      Left err -> dieJSONParseError jsonFilePath err
       Right json -> return json
 
 -- Common parsers
