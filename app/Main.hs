@@ -22,6 +22,7 @@
 #!/usr/bin/env stack
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 
 --import Turtle
@@ -37,10 +38,12 @@ data ListOptions = ListOptions deriving (Show)
 
 data AddOptions = AddOptions {
     folderPath :: FilePath,
-    warpname :: String
+    addname :: String
 } deriving (Show)
 
-data RemoveOptions = RemoveOptions deriving (Show)
+data RemoveOptions = RemoveOptions {
+    removename :: String
+} deriving (Show)
 
 
 data Command = CommandList ListOptions |
@@ -76,27 +79,47 @@ readFolderPath s = T.pack s |>
                      then return path
                      else readerError ("invalid path: " ++ (show path)))
 
-parseAddOption :: Parser Command
-parseAddOption =  
-    CommandAdd <$> (AddOptions <$> folderParser <*> warpNameParser) where
+
+-- Common parsers
+-- """"""""""""""
+warpnameParser :: Parser String
+warpnameParser = strOption
+                 (long "name" <>
+                  short 'n' <>
+                  metavar "NAME" <>
+                  help "name of the warp point for usage")
+
+
+-- Command parsers
+-- """""""""""""""
+parseAddCommand :: Parser Command
+parseAddCommand =  
+    CommandAdd <$> (AddOptions <$> folderParser <*> warpnameParser) where
         folderParser = option
                      (str >>= readFolderPath)
                      (long "path" <>
                       short 'p' <>
+                      value "./"  <>
                       metavar "FOLDERPATH" <>
                       help "path of the warp folder to warp to")
 
-        warpNameParser = strOption
-                         (long "name" <>
-                          short 'n' <>
-                          metavar "NAME"
-                          help "name of the warp point for usage")
+parseListCommand :: Parser Command
+parseListCommand = pure (CommandList ListOptions)
 
---parseAddOptions = pure (CommandAdd AddOptions)
+parseRemoveCommand :: Parser Command
+parseRemoveCommand = (CommandRemove <$> (RemoveOptions <$> warpnameParser))
 
 parseCommand :: Parser Command
 parseCommand = subparser 
-    (command "add" (info parseAddOption (progDesc "add a warp point")))
+    -- add command
+    ((command "add" (info parseAddCommand (progDesc "add a warp point"))) <>
+    -- list command
+    (command "list"
+        (info parseListCommand (progDesc "list all warp points"))) <>
+    -- remove command
+    (command "remove"
+        (info parseRemoveCommand (progDesc "remove a warp point"))))
 
 run :: Command -> IO ()
+run (CommandAdd AddOptions{..}) = putStrLn  addname
 run command = print command
