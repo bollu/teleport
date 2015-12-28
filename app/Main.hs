@@ -26,6 +26,8 @@
 
 
 import Control.Monad
+import Data.Traversable
+
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T.Encoding
@@ -163,6 +165,11 @@ saveWarpData jsonFilePath warpData = do
     Turtle.touch jsonFilePath
     B.writeFile (filePathToString jsonFilePath) dataBytestring
 
+
+getWarpDataPath :: IO FilePath
+getWarpDataPath = do
+    homeFolder <- Turtle.home
+    return $ homeFolder </> ".warpdata"
 -- Common parsers
 -- """"""""""""""
 readFolderPath :: String -> ReadM FilePath
@@ -243,8 +250,7 @@ run (CommandAdd AddOptions{..}) = do
     print "yay, folder exists"
     print "loding warp data"
     
-    let warpDataPath = ("/Users/bollu/.warpdata" |> Path.fromText)
-
+    warpDataPath <- getWarpDataPath
     warpData <- loadWarpData warpDataPath
     absFolderPath <- Turtle.realpath folderPath
     
@@ -260,5 +266,15 @@ run (CommandAdd AddOptions{..}) = do
     print newWarpData
 
     saveWarpData warpDataPath newWarpData
+    
+-- List Command
+-- """"""""""""
+
+
+run (CommandList ListOptions) = do
+    warpDataPath <- getWarpDataPath
+    warpData <- loadWarpData warpDataPath
+
+    forM_ (warpPoints warpData) print
     
 run command = print command
