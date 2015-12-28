@@ -23,3 +23,6 @@ now, functions like
 
 
 I think (2)
+
+
+* Haskell needs a good library for box-drawing

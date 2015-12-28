@@ -43,6 +43,8 @@ import Data.Aeson ((.=), (.:))
 
 import qualified Data.ByteString.Lazy as B
 
+import qualified System.Console.ANSI as ANSI
+
 
 import Debug.Trace
 
@@ -182,9 +184,9 @@ readFolderPath s = T.pack s |>
 
 warpnameParser :: Parser String
 warpnameParser = strOption
-                 (long "name" <>
-                  short 'n' <>
-                  metavar "NAME" <>
+                 --(long "name" <>
+                  --short 'n' <>
+                  (metavar "NAME" <>
                   help "name of the warp point for usage")
 
 
@@ -196,9 +198,9 @@ parseAddCommand =
     CommandAdd <$> (AddOptions <$> folderParser <*> warpnameParser) where
         folderParser = option
                      (str >>= readFolderPath)
-                     (long "path" <>
-                      short 'p' <>
-                      value "./"  <>
+                     --(long "path" <>
+                      --short 'p' <>
+                      (value "./"  <>
                       metavar "FOLDERPATH" <>
                       help "path of the warp folder to warp to")
 
@@ -219,17 +221,35 @@ parseCommand = subparser
     (command "remove"
         (info parseRemoveCommand (progDesc "remove a warp point"))))
 
+-- Stream Helpers
+-- """"""""""""""
+
+setErrorColor :: IO ()
+setErrorColor = ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]    
+
+
+warpPointPrint :: WarpPoint -> IO ()
+warpPointPrint warpPoint = do
+    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+    putStr (name warpPoint)
+    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
+    putStr "\t"
+    putStr (absFolderPath warpPoint)
+    putStr "\n"
+
 -- Add command runner
 -- """"""""""""""""""
 
 folderNotFoundError :: FilePath -> IO ()
-folderNotFoundError path = 
+folderNotFoundError path =
+    setErrorColor >> 
     ("unable to find folder: " ++ (show path)) |>
     T.pack |>
     Turtle.die
 
 needFolderNotFileError :: FilePath -> IO ()
 needFolderNotFileError path = 
+    setErrorColor >>
     ("expected folder, not file: " ++ (show path)) |>
     T.pack |>
     Turtle.die
@@ -244,8 +264,15 @@ dieIfFolderNotFound path =
         unless folderExists (folderNotFoundError path)
        -- we know the folder exists
 
-run :: Command -> IO ()
-run (CommandAdd AddOptions{..}) = do
+dieWarpPointExists :: WarpPoint -> IO ()
+dieWarpPointExists warpPoint  =  do
+    setErrorColor
+    putStrLn ("warp point " ++ (name warpPoint) ++ " already exists:\n")
+    warpPointPrint warpPoint
+    Turtle.die ""
+
+runAdd :: AddOptions -> IO ()
+runAdd AddOptions{..} = do
     dieIfFolderNotFound folderPath
     print "yay, folder exists"
     print "loding warp data"
@@ -254,16 +281,25 @@ run (CommandAdd AddOptions{..}) = do
     warpData <- loadWarpData warpDataPath
     absFolderPath <- Turtle.realpath folderPath
     
+    let warpFilter warp = (name warp == addname)
+
+    let warpsIdentical = filter warpFilter (warpPoints warpData)
+
+    unless (Prelude.null warpsIdentical)
+         (dieWarpPointExists (head warpsIdentical))
+
     let newWarpPoint = WarpPoint {
         name = addname,
         absFolderPath = filePathToString absFolderPath
     }
+  
+    putStrLn "creating warp point: \n"
+    warpPointPrint newWarpPoint
 
     let newWarpData = WarpData {
          warpPoints =  newWarpPoint:(warpPoints warpData)   
     }
     
-    print newWarpData
 
     saveWarpData warpDataPath newWarpData
     
@@ -271,10 +307,46 @@ run (CommandAdd AddOptions{..}) = do
 -- """"""""""""
 
 
-run (CommandList ListOptions) = do
+runList :: ListOptions -> IO ()
+runList ListOptions = do
     warpDataPath <- getWarpDataPath
     warpData <- loadWarpData warpDataPath
 
-    forM_ (warpPoints warpData) print
+    forM_ (warpPoints warpData) warpPointPrint
     
-run command = print command
+
+-- Remove Command
+-- """""""""""""""
+
+dieWarpPointNotFound :: String ->IO ()
+dieWarpPointNotFound name = 
+    setErrorColor >>
+    (name ++ " warp point not found") |>
+    T.pack |>
+    Turtle.die
+
+runRemove :: RemoveOptions -> IO ()
+runRemove RemoveOptions{..} = do
+    warpDataPath <- getWarpDataPath
+    warpData <- loadWarpData warpDataPath
+
+    let containsName = any (\warp -> name warp == removename) 
+                           (warpPoints warpData)
+    
+    unless containsName (dieWarpPointNotFound removename)
+    
+    let newWarpPoints = filter (\warp -> name warp /= removename)
+                               (warpPoints warpData)
+    let newWarpData = warpData {
+        warpPoints = newWarpPoints
+    }
+
+    saveWarpData warpDataPath newWarpData
+
+run :: Command -> IO ()
+run command = 
+    case command of
+        CommandAdd addOpt -> runAdd addOpt
+        CommandList listOpt -> runList listOpt
+        CommandRemove removeOpt -> runRemove removeOpt
+        other @ _ -> print other
