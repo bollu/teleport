@@ -26,3 +26,5 @@ I think (2)
 
 
 * Haskell needs a good library for box-drawing
+
+* Having non-named positional arguments is weird in optparse-applicative
