@@ -27,6 +27,8 @@
 
 import Control.Monad
 import Data.Traversable
+import Data.Maybe
+import Data.List
 
 import Prelude hiding (FilePath)
 import qualified Data.Text as T
@@ -62,10 +64,15 @@ data RemoveOptions = RemoveOptions {
     removename :: String
 } deriving (Show)
 
+-- options parrsed to 'warp goto'
+data GotoOptions = GotoOptions {
+    gotoname :: String
+} deriving(Show)
 -- the combined datatype representing all warp commands
 data Command = CommandList ListOptions |
                CommandAdd AddOptions |
-               CommandRemove RemoveOptions
+               CommandRemove RemoveOptions |
+               CommandGoto GotoOptions
     deriving (Show)
 
 -- an abstract entity representing a point to which we can warp to
@@ -206,7 +213,10 @@ parseListCommand :: Parser Command
 parseListCommand = pure (CommandList ListOptions)
 
 parseRemoveCommand :: Parser Command
-parseRemoveCommand = (CommandRemove <$> (RemoveOptions <$> warpnameParser))
+parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> warpnameParser)
+
+parseGotoCommand :: Parser Command
+parseGotoCommand = CommandGoto <$> (GotoOptions <$> warpnameParser)
 
 parseCommand :: Parser Command
 parseCommand = subparser 
@@ -217,7 +227,10 @@ parseCommand = subparser
         (info parseListCommand (progDesc "list all warp points"))) <>
     -- remove command
     (command "remove"
-        (info parseRemoveCommand (progDesc "remove a warp point"))))
+        (info parseRemoveCommand (progDesc "remove a warp point"))) <>
+    -- goto command
+    (command "goto"
+        (info parseGotoCommand (progDesc "go to a created warp point"))))
 
 -- Stream Helpers
 -- """"""""""""""
@@ -279,27 +292,24 @@ runAdd AddOptions{..} = do
     warpData <- loadWarpData warpDataPath
     absFolderPath <- Turtle.realpath folderPath
     
-    let warpFilter warp = (name warp == addname)
+    let existingWarpPoint = find (\warp -> name warp == addname) (warpPoints warpData)
+    case existingWarpPoint of
+        Just warpPoint -> dieWarpPointExists warpPoint
+        Nothing -> do
+                        let newWarpPoint = WarpPoint {
+                            name = addname,
+                            absFolderPath = filePathToString absFolderPath
+                        }
+                      
+                        putStrLn "creating warp point: \n"
+                        warpPointPrint newWarpPoint
 
-    let warpsIdentical = filter warpFilter (warpPoints warpData)
+                        let newWarpData = WarpData {
+                             warpPoints =  newWarpPoint:(warpPoints warpData)   
+                        }
+                        
 
-    unless (Prelude.null warpsIdentical)
-         (dieWarpPointExists (head warpsIdentical))
-
-    let newWarpPoint = WarpPoint {
-        name = addname,
-        absFolderPath = filePathToString absFolderPath
-    }
-  
-    putStrLn "creating warp point: \n"
-    warpPointPrint newWarpPoint
-
-    let newWarpData = WarpData {
-         warpPoints =  newWarpPoint:(warpPoints warpData)   
-    }
-    
-
-    saveWarpData warpDataPath newWarpData
+                        saveWarpData warpDataPath newWarpData
     
 -- List Command
 -- """"""""""""
@@ -328,19 +338,29 @@ runRemove RemoveOptions{..} = do
     warpDataPath <- getWarpDataPath
     warpData <- loadWarpData warpDataPath
 
-    let containsName = any (\warp -> name warp == removename) 
-                           (warpPoints warpData)
-    
-    unless containsName (dieWarpPointNotFound removename)
-    
-    let newWarpPoints = filter (\warp -> name warp /= removename)
-                               (warpPoints warpData)
-    let newWarpData = warpData {
-        warpPoints = newWarpPoints
-    }
 
-    saveWarpData warpDataPath newWarpData
+    let wantedWarpPoint = find (\warp -> name warp == removename) (warpPoints warpData)
+    case wantedWarpPoint of
+        Nothing -> dieWarpPointNotFound removename
+        Just _ ->  do
+                    let newWarpPoints = filter (\warp -> name warp /= removename)
+                                               (warpPoints warpData)
+                    let newWarpData = warpData {
+                        warpPoints = newWarpPoints
+                    }
 
+                    saveWarpData warpDataPath newWarpData
+
+runGoto :: GotoOptions -> IO ()
+runGoto GotoOptions{..} = do
+    warpDataPath <- getWarpDataPath
+    warpData <- loadWarpData warpDataPath
+    
+    let wantedWarpPoint = find (\warp -> name warp == gotoname) (warpPoints warpData)
+    case wantedWarpPoint of
+        Nothing -> dieWarpPointNotFound gotoname
+        Just warpPoint -> Turtle.cd (Path.fromText (T.pack (absFolderPath warpPoint)))
+      
 run :: Command -> IO ()
 run command = 
     case command of
