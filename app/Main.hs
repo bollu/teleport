@@ -183,9 +183,7 @@ readFolderPath s = T.pack s |>
 
 
 warpnameParser :: Parser String
-warpnameParser = strOption
-                 --(long "name" <>
-                  --short 'n' <>
+warpnameParser = argument str
                   (metavar "NAME" <>
                   help "name of the warp point for usage")
 
