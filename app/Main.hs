@@ -360,7 +360,8 @@ runGoto GotoOptions{..} = do
     case wantedWarpPoint of
         Nothing -> dieWarpPointNotFound gotoname
         Just warpPoint -> do
-                             Turtle.echo (name warpPoint)
+                             Turtle.echo (T.pack (absFolderPath warpPoint))
+                             Turtle.exit (Turtle.ExitFailure 2) 
       
 run :: Command -> IO ()
 run command = 
