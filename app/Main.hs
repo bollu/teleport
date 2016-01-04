@@ -359,7 +359,8 @@ runGoto GotoOptions{..} = do
     let wantedWarpPoint = find (\warp -> name warp == gotoname) (warpPoints warpData)
     case wantedWarpPoint of
         Nothing -> dieWarpPointNotFound gotoname
-        Just warpPoint -> Turtle.cd (Path.fromText (T.pack (absFolderPath warpPoint)))
+        Just warpPoint -> do
+                             Turtle.echo (name warpPoint)
       
 run :: Command -> IO ()
 run command = 
@@ -367,4 +368,5 @@ run command =
         CommandAdd addOpt -> runAdd addOpt
         CommandList listOpt -> runList listOpt
         CommandRemove removeOpt -> runRemove removeOpt
+        CommandGoto gotoOpt -> runGoto gotoOpt
         other @ _ -> print other
