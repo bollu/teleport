@@ -1,7 +1,9 @@
 name:                teleport
 version:             0.0.0.9
 synopsis:            A tool to quickly switch between directories
-description:         Please see README.md
+description:
+    A tool to quickly switch between directories 
+    Please see README.md for more details
 homepage:            https://github.com/bollu/teleport#readme
 license:             MIT
 license-file:        LICENSE
@@ -14,6 +16,13 @@ bug-reports:         https://github.com/bollu/teleport/issues
 stability:           Alpha
 -- extra-source-files:
 cabal-version:       >=1.10
+
+extra-source-files:
+    README.md
+    Changelog.md
+    stack.yaml
+    tp.sh
+
 
 library
   hs-source-dirs:      src
