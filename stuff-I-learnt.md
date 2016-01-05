@@ -40,3 +40,5 @@ Uploading a package
 * changing git URL
 * changing homepage
 * changing description, synopsis
+* README, Changelog
+* travis
