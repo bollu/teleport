@@ -1,5 +1,9 @@
 # Warp
 
+[![Build Status](https://travis-ci.org/bollu/teleport.svg?branch=master)](https://travis-ci.org/bollu/teleport)
+
+
+
 A lightning-fast tool to quickly switch between repositories
 
 # Getting started
