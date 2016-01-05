@@ -28,3 +28,14 @@ I think (2)
 * Haskell needs a good library for box-drawing
 
 * Having non-named positional arguments is weird in optparse-applicative
+
+
+Uploading a package
+==================
+
+* User account creation
+* generating a tarball
+* setting version numbers right
+* changing git URL
+* changing homepage
+* changing description, synopsis

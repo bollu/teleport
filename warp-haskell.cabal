@@ -1,15 +1,17 @@
-name:                warp-haskell
-version:             0.1.0.0
-synopsis:            Initial project template from stack
+name:                teleport
+version:             0.0.0.9
+synopsis:            A tool to quickly switch between directories
 description:         Please see README.md
-homepage:            http://github.com/githubuser/warp-haskell#readme
-license:             BSD3
+homepage:            https://github.com/bollu/teleport#readme
+license:             MIT
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2010 Author Here
-category:            Web
+author:              Siddharth Bhat
+maintainer:          siddu.druid@gmail.com
+copyright:           2010 Siddharth Bhat
+category:            Tools
 build-type:          Simple
+bug-reports:         https://github.com/bollu/teleport/issues 
+stability:           Alpha
 -- extra-source-files:
 cabal-version:       >=1.10
 
@@ -46,4 +48,4 @@ test-suite warp-haskell-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/warp-haskell
+  location: https://github.com/bollu/warp-haskell
