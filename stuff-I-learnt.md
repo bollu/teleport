@@ -29,6 +29,7 @@ I think (2)
 
 * Having non-named positional arguments is weird in optparse-applicative
 
+* do NOT mix user facing names eg: `warp` with application ideas eg: `warpPoint`
 
 Uploading a package
 ==================
