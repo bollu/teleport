@@ -21,7 +21,7 @@ extra-source-files:
     README.md
     Changelog.md
     stack.yaml
-    tp.sh
+    teleport.sh
 
 
 library
