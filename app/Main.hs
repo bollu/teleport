@@ -338,7 +338,6 @@ runRemove RemoveOptions{..} = do
     warpDataPath <- getWarpDataPath
     warpData <- loadWarpData warpDataPath
 
-
     let wantedWarpPoint = find (\warp -> name warp == removename) (warpPoints warpData)
     case wantedWarpPoint of
         Nothing -> dieWarpPointNotFound removename

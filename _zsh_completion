@@ -1,0 +1,3 @@
+#compdef tp
+
+_arguments "1: :(World)"

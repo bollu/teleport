@@ -8,6 +8,24 @@ A lightning-fast tool to quickly switch between repositories
 
 # Getting started
 
+## Install script
+
+there is a handy installer script that installs 
+
+Have your `.bashrc`, `.zshrc`
+
+## Installing from source
+
+To install from source, use `cabal` by running
+
+```
+cabal install teleport
+```
+
+This will download and build `teleport`
+
+## Setting Up
+
 # Contributing
 
 # License

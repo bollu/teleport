@@ -42,3 +42,4 @@ Uploading a package
 * changing description, synopsis
 * README, Changelog
 * travis
+* Haskell cannot do cross compilation!

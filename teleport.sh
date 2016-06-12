@@ -9,3 +9,5 @@ function tp() {
         else echo "$OUTPUT"
     fi
 }
+
+fpath=(`pwd` $fpath) 
