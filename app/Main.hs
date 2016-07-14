@@ -108,9 +108,18 @@ tpHeader :: String
 tpHeader = "Teleport: move around your filesystem"
 
 
+
+-- | A version of 'execParser' which shows full help on error.                
+--                                                                            
+-- The regular 'execParser' only prints usage on error, which doesn't         
+-- include the options, subcommands, or mention of the help switch            
+-- @--help@.                                                                  
+showHelpOnErrorExecParser :: ParserInfo a -> IO a
+showHelpOnErrorExecParser = customExecParser (prefs showHelpOnError)
+
 main :: IO ()
 main = do 
-    command <- execParser (info (helper <*> parseCommand)
+    command <- showHelpOnErrorExecParser (info (helper <*> parseCommand)
                        (fullDesc  <>
                         progDesc tpProgDesc <>
                         header tpHeader))
@@ -203,9 +212,7 @@ parseAddCommand =
     CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
         folderParser = argument
                      (str >>= readFolderPath)
-                     (
-                      
-                      value "./"  <>
+                     (value "./"  <>
                       metavar "FOLDERPATH" <>
                       help "path of the teleport folder to teleport to. By default, taken as current working directory")
 
@@ -219,18 +226,18 @@ parseGotoCommand :: Parser Command
 parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
 
 parseCommand :: Parser Command
-parseCommand = subparser 
+parseCommand = subparser
     -- add command
-    ((command "add" (info parseAddCommand (progDesc "add a teleport point"))) <>
+    ((command "add" (info (helper <*> parseAddCommand) (fullDesc <> progDesc "add a teleport point"))) <>
     -- list command
     (command "list"
-        (info parseListCommand (progDesc "list all teleport points"))) <>
+        (info (helper <*> parseListCommand) (fullDesc <> progDesc "list all teleport points"))) <>
     -- remove command
     (command "remove"
-        (info parseRemoveCommand (progDesc "remove a teleport point"))) <>
+        (info (helper <*> parseRemoveCommand) (fullDesc <>progDesc "remove a teleport point"))) <>
     -- goto command
     (command "goto"
-        (info parseGotoCommand (progDesc "go to a created teleport point"))))
+        (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
 
 -- Stream Helpers
 -- """"""""""""""
