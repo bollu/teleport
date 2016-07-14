@@ -50,46 +50,46 @@ import qualified System.Console.ANSI as ANSI
 
 import Debug.Trace
 
--- options passed to 'warp list'
+-- options passed to 'tp list'
 data ListOptions = ListOptions deriving (Show)
 
--- options pased to 'warp add'
+-- options pased to 'tp add'
 data AddOptions = AddOptions {
     folderPath :: FilePath,
     addname :: String
 } deriving (Show)
 
--- options passed to 'warp remove'
+-- options passed to 'tp remove'
 data RemoveOptions = RemoveOptions {
     removename :: String
 } deriving (Show)
 
--- options parrsed to 'warp goto'
+-- options parrsed to 'tp goto'
 data GotoOptions = GotoOptions {
     gotoname :: String
 } deriving(Show)
--- the combined datatype representing all warp commands
+-- the combined datatype representing all tp commands
 data Command = CommandList ListOptions |
                CommandAdd AddOptions |
                CommandRemove RemoveOptions |
                CommandGoto GotoOptions
     deriving (Show)
 
--- an abstract entity representing a point to which we can warp to
-data WarpPoint = WarpPoint {
+-- an abstract entity representing a point to which we can tp to
+data TpPoint = TpPoint {
     name :: String,
     absFolderPath :: String
 } deriving (Show)
 
 
 -- the main data that is loaded from JSON 
-data WarpData = WarpData {
-    warpPoints :: [WarpPoint]
+data TpData = TpData {
+    tpPoints :: [TpPoint]
 } deriving (Show)
 
-defaultWarpData :: WarpData
-defaultWarpData = WarpData {
-    warpPoints = []
+defaultTpData :: TpData
+defaultTpData = TpData {
+    tpPoints = []
 }
 
 -- flip function for ease of chaining computations
@@ -100,54 +100,54 @@ defaultWarpData = WarpData {
 filePathToString :: FilePath -> String
 filePathToString = Path.encodeString
 
-warpProgDesc :: String
-warpProgDesc = "use warp to quickly setup warp points and move to these " ++
+tpProgDesc :: String
+tpProgDesc = "use teleport to quickly setup tp points and move to these " ++
                "when needed"
 
-warpHeader :: String
-warpHeader = "Warp: move around your filesystem"
+tpHeader :: String
+tpHeader = "Tp: move around your filesystem"
 
 
 main :: IO ()
 main = do 
     command <- execParser (info (helper <*> parseCommand)
                        (fullDesc  <>
-                        progDesc warpProgDesc <>
-                        header warpHeader))
+                        progDesc tpProgDesc <>
+                        header tpHeader))
     run command
 
 -- Data Loading
 -- """"""""""""
 
--- parse warpPoint
-instance JSON.FromJSON WarpPoint where
+-- parse tpPoint
+instance JSON.FromJSON TpPoint where
      parseJSON (JSON.Object v) =
-        WarpPoint <$> v .: "name"
+        TpPoint <$> v .: "name"
                   <*> v .: "absFolderPath"
 
-instance JSON.ToJSON WarpPoint where
-    toJSON (WarpPoint {..}) = 
+instance JSON.ToJSON TpPoint where
+    toJSON (TpPoint {..}) = 
         JSON.object [ "name" .= name
                      ,"absFolderPath" .= absFolderPath]
 
--- parse warpData
-instance JSON.FromJSON WarpData where
+-- parse tpData
+instance JSON.FromJSON TpData where
     parseJSON (JSON.Object v) =
-        WarpData <$> v .: "warpPoints"
+        TpData <$> v .: "tpPoints"
 
-instance JSON.ToJSON WarpData where
-    toJSON(WarpData{..}) = 
-        JSON.object ["warpPoints" .= warpPoints]
+instance JSON.ToJSON TpData where
+    toJSON(TpData{..}) = 
+        JSON.object ["tpPoints" .= tpPoints]
 
-dieJSONParseError :: FilePath -> String -> IO WarpData
+dieJSONParseError :: FilePath -> String -> IO TpData
 dieJSONParseError jsonFilePath err = 
     ("parse error in: " ++ (show jsonFilePath) ++
     "\nerror:------\n" ++ err) |>
     T.pack |>
     Turtle.die
 
-decodeWarpData :: FilePath -> IO WarpData
-decodeWarpData jsonFilePath = do
+decodeTpData :: FilePath -> IO TpData
+decodeTpData jsonFilePath = do
     rawInput <- B.readFile (filePathToString jsonFilePath)
     let jsonResult = JSON.eitherDecode' rawInput  
 
@@ -155,30 +155,30 @@ decodeWarpData jsonFilePath = do
       Left err -> dieJSONParseError jsonFilePath err
       Right json -> return json
 
-createWarpDataFile :: FilePath -> IO ()
-createWarpDataFile jsonFilePath = saveWarpData jsonFilePath defaultWarpData
+createTpDataFile :: FilePath -> IO ()
+createTpDataFile jsonFilePath = saveTpData jsonFilePath defaultTpData
 
-loadWarpData :: FilePath -> IO WarpData
-loadWarpData jsonFilePath = do
+loadTpData :: FilePath -> IO TpData
+loadTpData jsonFilePath = do
     exists <- (Turtle.testfile jsonFilePath)
     if exists then
-        decodeWarpData jsonFilePath
+        decodeTpData jsonFilePath
     else
        do
-           createWarpDataFile jsonFilePath
-           return defaultWarpData
+           createTpDataFile jsonFilePath
+           return defaultTpData
 
-saveWarpData :: FilePath -> WarpData -> IO ()
-saveWarpData jsonFilePath warpData = do
-    let dataBytestring = JSON.encode warpData
+saveTpData :: FilePath -> TpData -> IO ()
+saveTpData jsonFilePath tpData = do
+    let dataBytestring = JSON.encode tpData
     Turtle.touch jsonFilePath
     B.writeFile (filePathToString jsonFilePath) dataBytestring
 
 
-getWarpDataPath :: IO FilePath
-getWarpDataPath = do
+getTpDataPath :: IO FilePath
+getTpDataPath = do
     homeFolder <- Turtle.home
-    return $ homeFolder </> ".warpdata"
+    return $ homeFolder </> ".tpdata"
 -- Common parsers
 -- """"""""""""""
 readFolderPath :: String -> ReadM FilePath
@@ -189,10 +189,10 @@ readFolderPath s = T.pack s |>
                      else readerError ("invalid path: " ++ (show path)))
 
 
-warpnameParser :: Parser String
-warpnameParser = argument str
+tpnameParser :: Parser String
+tpnameParser = argument str
                   (metavar "NAME" <>
-                  help "name of the warp point for usage")
+                  help "name of the teleport point for usage")
 
 
 -- Command parsers
@@ -200,37 +200,37 @@ warpnameParser = argument str
 
 parseAddCommand :: Parser Command
 parseAddCommand =  
-    CommandAdd <$> (AddOptions <$> folderParser <*> warpnameParser) where
+    CommandAdd <$> (AddOptions <$> folderParser <*> tpnameParser) where
         folderParser = option
                      (str >>= readFolderPath)
                      --(long "path" <>
                       --short 'p' <>
                       (value "./"  <>
                       metavar "FOLDERPATH" <>
-                      help "path of the warp folder to warp to")
+                      help "path of the teleport folder to teleport to")
 
 parseListCommand :: Parser Command
 parseListCommand = pure (CommandList ListOptions)
 
 parseRemoveCommand :: Parser Command
-parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> warpnameParser)
+parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
 
 parseGotoCommand :: Parser Command
-parseGotoCommand = CommandGoto <$> (GotoOptions <$> warpnameParser)
+parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
 
 parseCommand :: Parser Command
 parseCommand = subparser 
     -- add command
-    ((command "add" (info parseAddCommand (progDesc "add a warp point"))) <>
+    ((command "add" (info parseAddCommand (progDesc "add a teleport point"))) <>
     -- list command
     (command "list"
-        (info parseListCommand (progDesc "list all warp points"))) <>
+        (info parseListCommand (progDesc "list all teleport points"))) <>
     -- remove command
     (command "remove"
-        (info parseRemoveCommand (progDesc "remove a warp point"))) <>
+        (info parseRemoveCommand (progDesc "remove a teleport point"))) <>
     -- goto command
     (command "goto"
-        (info parseGotoCommand (progDesc "go to a created warp point"))))
+        (info parseGotoCommand (progDesc "go to a created teleport point"))))
 
 -- Stream Helpers
 -- """"""""""""""
@@ -239,13 +239,13 @@ setErrorColor :: IO ()
 setErrorColor = ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]    
 
 
-warpPointPrint :: WarpPoint -> IO ()
-warpPointPrint warpPoint = do
+tpPointPrint :: TpPoint -> IO ()
+tpPointPrint tpPoint = do
     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
-    putStr (name warpPoint)
+    putStr (name tpPoint)
     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
     putStr "\t"
-    putStr (absFolderPath warpPoint)
+    putStr (absFolderPath tpPoint)
     putStr "\n"
 
 -- Add command runner
@@ -275,41 +275,38 @@ dieIfFolderNotFound path =
         unless folderExists (folderNotFoundError path)
        -- we know the folder exists
 
-dieWarpPointExists :: WarpPoint -> IO ()
-dieWarpPointExists warpPoint  =  do
+dieTpPointExists :: TpPoint -> IO ()
+dieTpPointExists tpPoint  =  do
     setErrorColor
-    putStrLn ("warp point " ++ (name warpPoint) ++ " already exists:\n")
-    warpPointPrint warpPoint
+    putStrLn ("teleport point " ++ (name tpPoint) ++ " already exists:\n")
+    tpPointPrint tpPoint
     Turtle.die ""
 
 runAdd :: AddOptions -> IO ()
 runAdd AddOptions{..} = do
     dieIfFolderNotFound folderPath
-    print "yay, folder exists"
-    print "loding warp data"
-    
-    warpDataPath <- getWarpDataPath
-    warpData <- loadWarpData warpDataPath
+    tpDataPath <- getTpDataPath
+    tpData <- loadTpData tpDataPath
     absFolderPath <- Turtle.realpath folderPath
     
-    let existingWarpPoint = find (\warp -> name warp == addname) (warpPoints warpData)
-    case existingWarpPoint of
-        Just warpPoint -> dieWarpPointExists warpPoint
+    let existingTpPoint = find (\tp -> name tp == addname) (tpPoints tpData)
+    case existingTpPoint of
+        Just tpPoint -> dieTpPointExists tpPoint
         Nothing -> do
-                        let newWarpPoint = WarpPoint {
+                        let newTpPoint = TpPoint {
                             name = addname,
                             absFolderPath = filePathToString absFolderPath
                         }
                       
-                        putStrLn "creating warp point: \n"
-                        warpPointPrint newWarpPoint
+                        putStrLn "creating teleport point: \n"
+                        tpPointPrint newTpPoint
 
-                        let newWarpData = WarpData {
-                             warpPoints =  newWarpPoint:(warpPoints warpData)   
+                        let newTpData = TpData {
+                             tpPoints =  newTpPoint:(tpPoints tpData)   
                         }
                         
 
-                        saveWarpData warpDataPath newWarpData
+                        saveTpData tpDataPath newTpData
     
 -- List Command
 -- """"""""""""
@@ -317,49 +314,60 @@ runAdd AddOptions{..} = do
 
 runList :: ListOptions -> IO ()
 runList ListOptions = do
-    warpDataPath <- getWarpDataPath
-    warpData <- loadWarpData warpDataPath
+    tpDataPath <- getTpDataPath
+    tpData <- loadTpData tpDataPath
+    let num_points = length $ tpPoints tpData
+    putStr "teleport points: "
 
-    forM_ (warpPoints warpData) warpPointPrint
+    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
+    putStr $ "(total " <> (show num_points) <>  ")\n"
+    forM_ (tpPoints tpData) tpPointPrint
     
 
 -- Remove Command
 -- """""""""""""""
 
-dieWarpPointNotFound :: String ->IO ()
-dieWarpPointNotFound name = 
+dieTpPointNotFound :: String ->IO ()
+dieTpPointNotFound name = 
     setErrorColor >>
-    (name ++ " warp point not found") |>
+    (name ++ " tp point not found") |>
     T.pack |>
     Turtle.die
 
 runRemove :: RemoveOptions -> IO ()
 runRemove RemoveOptions{..} = do
-    warpDataPath <- getWarpDataPath
-    warpData <- loadWarpData warpDataPath
+    tpDataPath <- getTpDataPath
+    tpData <- loadTpData tpDataPath
 
-    let wantedWarpPoint = find (\warp -> name warp == removename) (warpPoints warpData)
-    case wantedWarpPoint of
-        Nothing -> dieWarpPointNotFound removename
+    let wantedTpPoint = find (\tp -> name tp == removename) (tpPoints tpData)
+    case wantedTpPoint of
+        Nothing -> dieTpPointNotFound removename
         Just _ ->  do
-                    let newWarpPoints = filter (\warp -> name warp /= removename)
-                                               (warpPoints warpData)
-                    let newWarpData = warpData {
-                        warpPoints = newWarpPoints
+                    let newTpPoints = filter (\tp -> name tp /= removename)
+                                               (tpPoints tpData)
+                    let newTpData = tpData {
+                        tpPoints = newTpPoints
                     }
 
-                    saveWarpData warpDataPath newWarpData
+                    saveTpData tpDataPath newTpData
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+                    putStr "removed teleport point ["
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
+                    putStr removename
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+                    putStr "]"
+                    
 
 runGoto :: GotoOptions -> IO ()
 runGoto GotoOptions{..} = do
-    warpDataPath <- getWarpDataPath
-    warpData <- loadWarpData warpDataPath
+    tpDataPath <- getTpDataPath
+    tpData <- loadTpData tpDataPath
     
-    let wantedWarpPoint = find (\warp -> name warp == gotoname) (warpPoints warpData)
-    case wantedWarpPoint of
-        Nothing -> dieWarpPointNotFound gotoname
-        Just warpPoint -> do
-                             Turtle.echo (T.pack (absFolderPath warpPoint))
+    let wantedTpPoint = find (\tp -> name tp == gotoname) (tpPoints tpData)
+    case wantedTpPoint of
+        Nothing -> dieTpPointNotFound gotoname
+        Just tpPoint -> do
+                             Turtle.echo (T.pack (absFolderPath tpPoint))
                              Turtle.exit (Turtle.ExitFailure 2) 
       
 run :: Command -> IO ()
