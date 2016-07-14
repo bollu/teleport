@@ -55,8 +55,8 @@ data ListOptions = ListOptions deriving (Show)
 
 -- options pased to 'tp add'
 data AddOptions = AddOptions {
-    folderPath :: FilePath,
-    addname :: String
+    addname :: String,
+    folderPath :: FilePath
 } deriving (Show)
 
 -- options passed to 'tp remove'
@@ -101,11 +101,11 @@ filePathToString :: FilePath -> String
 filePathToString = Path.encodeString
 
 tpProgDesc :: String
-tpProgDesc = "use teleport to quickly setup tp points and move to these " ++
+tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
                "when needed"
 
 tpHeader :: String
-tpHeader = "Tp: move around your filesystem"
+tpHeader = "Teleport: move around your filesystem"
 
 
 main :: IO ()
@@ -200,14 +200,14 @@ tpnameParser = argument str
 
 parseAddCommand :: Parser Command
 parseAddCommand =  
-    CommandAdd <$> (AddOptions <$> folderParser <*> tpnameParser) where
-        folderParser = option
+    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
+        folderParser = argument
                      (str >>= readFolderPath)
-                     --(long "path" <>
-                      --short 'p' <>
-                      (value "./"  <>
+                     (
+                      
+                      value "./"  <>
                       metavar "FOLDERPATH" <>
-                      help "path of the teleport folder to teleport to")
+                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
 
 parseListCommand :: Parser Command
 parseListCommand = pure (CommandList ListOptions)
