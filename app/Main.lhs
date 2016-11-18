@@ -1,3 +1,6 @@
+First thing's first, let us get the MIT license out of the way.
+
+\begin{code}
 --Copyright (c) 2015 Siddharth Bhat
 
 --Permission is hereby granted, free of charge, to any person obtaining
@@ -17,14 +20,27 @@
 --LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 --FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 --OTHER DEALINGS IN THE SOFTWARE.
+\end{code}
 
+Haskell Extensions
+------------------
 
+\begin{code}
 #!/usr/bin/env stack
+\end{code}
 
+`OverloadedStrings` allows us to freely write code in
+\" and have it be treated as String or Data.Text depending on context. It's
+a handy extension to have around.
+
+`RecordWildCards` is more interesting, and I'll describe it in more detail when we
+get to it
+\begin{code}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+\end{code}
 
-
+\begin{code}
 import Control.Monad
 import Data.Traversable
 import Data.Maybe
@@ -38,7 +54,6 @@ import Options.Applicative
 import Filesystem.Path.CurrentOS as Path
 
 import qualified Turtle
---import qualified Data.Configurator as Config
 
 import qualified Data.Aeson as JSON
 import Data.Aeson ((.=), (.:))
@@ -49,57 +64,10 @@ import qualified System.Console.ANSI as ANSI
 
 
 import Debug.Trace
+\end{code}
 
--- options passed to 'tp list'
-data ListOptions = ListOptions deriving (Show)
-
--- options pased to 'tp add'
-data AddOptions = AddOptions {
-    addname :: String,
-    folderPath :: FilePath
-} deriving (Show)
-
--- options passed to 'tp remove'
-data RemoveOptions = RemoveOptions {
-    removename :: String
-} deriving (Show)
-
--- options parrsed to 'tp goto'
-data GotoOptions = GotoOptions {
-    gotoname :: String
-} deriving(Show)
--- the combined datatype representing all tp commands
-data Command = CommandList ListOptions |
-               CommandAdd AddOptions |
-               CommandRemove RemoveOptions |
-               CommandGoto GotoOptions
-    deriving (Show)
-
--- an abstract entity representing a point to which we can tp to
-data TpPoint = TpPoint {
-    name :: String,
-    absFolderPath :: String
-} deriving (Show)
-
-
--- the main data that is loaded from JSON 
-data TpData = TpData {
-    tpPoints :: [TpPoint]
-} deriving (Show)
-
-defaultTpData :: TpData
-defaultTpData = TpData {
-    tpPoints = []
-}
-
--- flip function for ease of chaining computations
-(|>) :: a -> (a -> b) -> b
-(|>) = flip ($)
-
-
-filePathToString :: FilePath -> String
-filePathToString = Path.encodeString
-
+Explain main in this codebase.
+\begin{code}
 tpProgDesc :: String
 tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
                "when needed"
@@ -124,11 +92,116 @@ main = do
                         progDesc tpProgDesc <>
                         header tpHeader))
     run command
+\end{code}
 
--- Data Loading
--- """"""""""""
+Explain how parsers work in `optparse-applicative`  and how to compose them
 
--- parse tpPoint
+\begin{code}
+parseCommand :: Parser Command
+parseCommand = subparser
+    -- add command
+    ((command "add" (info (helper <*> parseAddCommand) (fullDesc <> progDesc "add a teleport point"))) <>
+    -- list command
+    (command "list"
+        (info (helper <*> parseListCommand) (fullDesc <> progDesc "list all teleport points"))) <>
+    -- remove command
+    (command "remove"
+        (info (helper <*> parseRemoveCommand) (fullDesc <>progDesc "remove a teleport point"))) <>
+    -- goto command
+    (command "goto"
+        (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
+
+-- Common parsers
+-- """"""""""""""
+readFolderPath :: String -> ReadM FilePath
+readFolderPath s = T.pack s |> 
+                 Path.fromText |> 
+                 (\path -> if Path.valid path
+                     then return path
+                     else readerError ("invalid path: " ++ (show path)))
+
+
+tpnameParser :: Parser String
+tpnameParser = argument str
+                  (metavar "NAME" <>
+                  help "name of the teleport point for usage")
+
+
+-- Command parsers
+-- """""""""""""""
+
+parseAddCommand :: Parser Command
+parseAddCommand =  
+    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
+        folderParser = argument
+                     (str >>= readFolderPath)
+                     (value "./"  <>
+                      metavar "FOLDERPATH" <>
+                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
+
+parseListCommand :: Parser Command
+parseListCommand = pure (CommandList ListOptions)
+
+parseRemoveCommand :: Parser Command
+parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
+
+parseGotoCommand :: Parser Command
+parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
+
+\end{code}
+
+We're creating `Options` datatypes to store the options.
+
+* `ListOptions` stores the options that listing will have (which are none)
+* `AddOptions` needs the name of the warp point to add, and the path to the folder
+* `RemoveOptions` needs the name of the warp point to remove
+* `GotoOptions` needs the name of the warp point to go to
+* `Command` is the data type that allows us to combine all of this
+   information.
+
+\begin{code}
+-- options passed to 'tp list'
+data ListOptions = ListOptions deriving (Show)
+
+-- options pased to 'tp add'
+data AddOptions = AddOptions {
+    addname :: String,
+    folderPath :: FilePath
+} deriving (Show)
+
+-- options passed to 'tp remove'
+data RemoveOptions = RemoveOptions {
+    removename :: String
+} deriving (Show)
+
+-- options parrsed to 'tp goto'
+data GotoOptions = GotoOptions {
+    gotoname :: String
+} deriving(Show)
+-- the combined datatype representing all tp commands
+data Command = CommandList ListOptions |
+               CommandAdd AddOptions |
+               CommandRemove RemoveOptions |
+               CommandGoto GotoOptions
+    deriving (Show)
+\end{code}
+
+
+This is our program representation. The `TpPoint` class stores the
+information of a warp point.
+
+
+We will implement the `FromJSON` and `ToJSON` typeclasses for both
+to allow us to save these as JSON files
+
+\begin{code}
+-- an abstract entity representing a point to which we can tp to
+data TpPoint = TpPoint {
+    name :: String,
+    absFolderPath :: String
+} deriving (Show)
+
+
 instance JSON.FromJSON TpPoint where
      parseJSON (JSON.Object v) =
         TpPoint <$> v .: "name"
@@ -138,8 +211,16 @@ instance JSON.ToJSON TpPoint where
     toJSON (TpPoint {..}) = 
         JSON.object [ "name" .= name
                      ,"absFolderPath" .= absFolderPath]
+\end{code}
 
--- parse tpData
+The `TpData` class stores all the warp points together.
+
+\begin{code}
+-- the main data that is loaded from JSON 
+data TpData = TpData {
+    tpPoints :: [TpPoint]
+} deriving (Show)
+
 instance JSON.FromJSON TpData where
     parseJSON (JSON.Object v) =
         TpData <$> v .: "tpPoints"
@@ -147,6 +228,39 @@ instance JSON.FromJSON TpData where
 instance JSON.ToJSON TpData where
     toJSON(TpData{..}) = 
         JSON.object ["tpPoints" .= tpPoints]
+\end{code}
+
+the `defaultTpData` represents the default `TpData` we will use if no
+warp data is found on execution.
+
+\begin{code}
+defaultTpData :: TpData
+defaultTpData = TpData {
+    tpPoints = []
+}
+
+\end{code}
+
+
+\begin{code}
+
+
+-- flip function for ease of chaining computations
+(|>) :: a -> (a -> b) -> b
+(|>) = flip ($)
+
+
+filePathToString :: FilePath -> String
+filePathToString = Path.encodeString
+
+
+
+-- Data Loading
+-- """"""""""""
+
+-- parse tpPoint
+
+-- parse tpData
 
 dieJSONParseError :: FilePath -> String -> IO TpData
 dieJSONParseError jsonFilePath err = 
@@ -188,57 +302,6 @@ getTpDataPath :: IO FilePath
 getTpDataPath = do
     homeFolder <- Turtle.home
     return $ homeFolder </> ".tpdata"
--- Common parsers
--- """"""""""""""
-readFolderPath :: String -> ReadM FilePath
-readFolderPath s = T.pack s |> 
-                 Path.fromText |> 
-                 (\path -> if Path.valid path
-                     then return path
-                     else readerError ("invalid path: " ++ (show path)))
-
-
-tpnameParser :: Parser String
-tpnameParser = argument str
-                  (metavar "NAME" <>
-                  help "name of the teleport point for usage")
-
-
--- Command parsers
--- """""""""""""""
-
-parseAddCommand :: Parser Command
-parseAddCommand =  
-    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
-        folderParser = argument
-                     (str >>= readFolderPath)
-                     (value "./"  <>
-                      metavar "FOLDERPATH" <>
-                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
-
-parseListCommand :: Parser Command
-parseListCommand = pure (CommandList ListOptions)
-
-parseRemoveCommand :: Parser Command
-parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
-
-parseGotoCommand :: Parser Command
-parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
-
-parseCommand :: Parser Command
-parseCommand = subparser
-    -- add command
-    ((command "add" (info (helper <*> parseAddCommand) (fullDesc <> progDesc "add a teleport point"))) <>
-    -- list command
-    (command "list"
-        (info (helper <*> parseListCommand) (fullDesc <> progDesc "list all teleport points"))) <>
-    -- remove command
-    (command "remove"
-        (info (helper <*> parseRemoveCommand) (fullDesc <>progDesc "remove a teleport point"))) <>
-    -- goto command
-    (command "goto"
-        (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
-
 -- Stream Helpers
 -- """"""""""""""
 
@@ -385,3 +448,4 @@ run command =
         CommandRemove removeOpt -> runRemove removeOpt
         CommandGoto gotoOpt -> runGoto gotoOpt
         other @ _ -> print other
+\end{code}

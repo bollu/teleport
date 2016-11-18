@@ -1,0 +1,398 @@
+<p>First thing's first, let us get the MIT license out of the way.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">--Copyright (c) 2015 Siddharth Bhat</span>
+
+<span class="co">--Permission is hereby granted, free of charge, to any person obtaining</span>
+<span class="co">--a copy of this software and associated documentation files (the &quot;Software&quot;)</span>
+<span class="co">--to deal in the Software without restriction, including without limitation the</span>
+<span class="co">--rights to use, copy, modify, merge, publish, distribute, sublicense, and/or</span>
+<span class="co">--sell copies of the Software, and to permit persons to whom the Software is</span>
+<span class="co">--furnished to do so, subject to the following conditions:</span>
+
+<span class="co">-- The above copyright notice and this permission notice shall</span>
+<span class="co">-- be included in all copies or substantial portions of the Software.</span>
+
+<span class="co">--THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS</span>
+<span class="co">--OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span>
+<span class="co">--FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span>
+<span class="co">--AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span>
+<span class="co">--LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING</span>
+<span class="co">--FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR</span>
+<span class="co">--OTHER DEALINGS IN THE SOFTWARE.</span></code></pre></div>
+<h2 id="haskell-extensions">Haskell Extensions</h2>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="st">#!/usr/bin/env stack</span></code></pre></div>
+<p><code>OverloadedStrings</code> allows us to freely write code in &quot; and have it be treated as String or Data.Text depending on context. It's a handy extension to have around.</p>
+<code>RecordWildCards</code> is more interesting, and I'll describe it in more detail when we get to it
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
+<span class="ot">{-# LANGUAGE RecordWildCards #-}</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Control.Monad</span>
+<span class="kw">import </span><span class="dt">Data.Traversable</span>
+<span class="kw">import </span><span class="dt">Data.Maybe</span>
+<span class="kw">import </span><span class="dt">Data.List</span>
+
+<span class="kw">import </span><span class="dt">Prelude</span> <span class="kw">hiding</span> (<span class="dt">FilePath</span>)
+<span class="kw">import qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">T</span>
+<span class="kw">import qualified</span> <span class="dt">Data.Text.Encoding</span> <span class="kw">as</span> <span class="dt">T.Encoding</span>
+
+<span class="kw">import </span><span class="dt">Options.Applicative</span>
+<span class="kw">import </span><span class="dt">Filesystem.Path.CurrentOS</span> <span class="kw">as</span> <span class="dt">Path</span>
+
+<span class="kw">import qualified</span> <span class="dt">Turtle</span>
+
+<span class="kw">import qualified</span> <span class="dt">Data.Aeson</span> <span class="kw">as</span> <span class="dt">JSON</span>
+<span class="kw">import </span><span class="dt">Data.Aeson</span> ((.=), (.:))
+
+<span class="kw">import qualified</span> <span class="dt">Data.ByteString.Lazy</span> <span class="kw">as</span> <span class="dt">B</span>
+
+<span class="kw">import qualified</span> <span class="dt">System.Console.ANSI</span> <span class="kw">as</span> <span class="dt">ANSI</span>
+
+
+<span class="kw">import </span><span class="dt">Debug.Trace</span></code></pre></div>
+Explain main in this codebase.
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">tpProgDesc ::</span> <span class="dt">String</span>
+tpProgDesc <span class="fu">=</span> <span class="st">&quot;use teleport to quickly setup teleport points and move to these &quot;</span> <span class="fu">++</span>
+               <span class="st">&quot;when needed&quot;</span>
+
+<span class="ot">tpHeader ::</span> <span class="dt">String</span>
+tpHeader <span class="fu">=</span> <span class="st">&quot;Teleport: move around your filesystem&quot;</span>
+
+
+
+<span class="co">-- | A version of &#39;execParser&#39; which shows full help on error.                </span>
+<span class="co">--                                                                            </span>
+<span class="co">-- The regular &#39;execParser&#39; only prints usage on error, which doesn&#39;t         </span>
+<span class="co">-- include the options, subcommands, or mention of the help switch            </span>
+<span class="co">-- @--help@.                                                                  </span>
+<span class="ot">showHelpOnErrorExecParser ::</span> <span class="dt">ParserInfo</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+showHelpOnErrorExecParser <span class="fu">=</span> customExecParser (prefs showHelpOnError)
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span> 
+    command <span class="ot">&lt;-</span> showHelpOnErrorExecParser (info (helper <span class="fu">&lt;*&gt;</span> parseCommand)
+                       (fullDesc  <span class="fu">&lt;&gt;</span>
+                        progDesc tpProgDesc <span class="fu">&lt;&gt;</span>
+                        header tpHeader))
+    run command</code></pre></div>
+<p>We're creating <code>Options</code> datatypes to store the options.</p>
+<ul>
+<li><code>ListOptions</code> stores the options that listing will have (which are none)</li>
+<li><code>AddOptions</code> needs the name of the warp point to add, and the path to the folder</li>
+<li><code>RemoveOptions</code> needs the name of the warp point to remove</li>
+<li><code>GotoOptions</code> needs the name of the warp point to go to</li>
+<li><code>Command</code> is the data type that allows us to combine all of this information.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- options passed to &#39;tp list&#39;</span>
+<span class="kw">data</span> <span class="dt">ListOptions</span> <span class="fu">=</span> <span class="dt">ListOptions</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="co">-- options pased to &#39;tp add&#39;</span>
+<span class="kw">data</span> <span class="dt">AddOptions</span> <span class="fu">=</span> <span class="dt">AddOptions</span> {
+<span class="ot">    addname ::</span> <span class="dt">String</span>,
+<span class="ot">    folderPath ::</span> FilePath
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="co">-- options passed to &#39;tp remove&#39;</span>
+<span class="kw">data</span> <span class="dt">RemoveOptions</span> <span class="fu">=</span> <span class="dt">RemoveOptions</span> {
+<span class="ot">    removename ::</span> <span class="dt">String</span>
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="co">-- options parrsed to &#39;tp goto&#39;</span>
+<span class="kw">data</span> <span class="dt">GotoOptions</span> <span class="fu">=</span> <span class="dt">GotoOptions</span> {
+<span class="ot">    gotoname ::</span> <span class="dt">String</span>
+} <span class="kw">deriving</span>(<span class="dt">Show</span>)
+<span class="co">-- the combined datatype representing all tp commands</span>
+<span class="kw">data</span> <span class="dt">Command</span> <span class="fu">=</span> <span class="dt">CommandList</span> <span class="dt">ListOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandAdd</span> <span class="dt">AddOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandRemove</span> <span class="dt">RemoveOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandGoto</span> <span class="dt">GotoOptions</span>
+    <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<p>This is our program representation. The <code>TpPoint</code> class stores the information of a warp point.</p>
+<p>We will implement the <code>FromJSON</code> and <code>ToJSON</code> typeclasses for both to allow us to save these as JSON files</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- an abstract entity representing a point to which we can tp to</span>
+<span class="kw">data</span> <span class="dt">TpPoint</span> <span class="fu">=</span> <span class="dt">TpPoint</span> {
+<span class="ot">    name ::</span> <span class="dt">String</span>,
+<span class="ot">    absFolderPath ::</span> <span class="dt">String</span>
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+
+<span class="kw">instance</span> <span class="dt">JSON.FromJSON</span> <span class="dt">TpPoint</span> <span class="kw">where</span>
+     parseJSON (<span class="dt">JSON.Object</span> v) <span class="fu">=</span>
+        <span class="dt">TpPoint</span> <span class="fu">&lt;$&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;name&quot;</span>
+                  <span class="fu">&lt;*&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;absFolderPath&quot;</span>
+
+<span class="kw">instance</span> <span class="dt">JSON.ToJSON</span> <span class="dt">TpPoint</span> <span class="kw">where</span>
+    toJSON (<span class="dt">TpPoint</span> {<span class="fu">..</span>}) <span class="fu">=</span> 
+        JSON.object [ <span class="st">&quot;name&quot;</span> <span class="fu">.=</span> name
+                     ,<span class="st">&quot;absFolderPath&quot;</span> <span class="fu">.=</span> absFolderPath]</code></pre></div>
+<p>The <code>TpData</code> class stores all the warp points together.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- the main data that is loaded from JSON </span>
+<span class="kw">data</span> <span class="dt">TpData</span> <span class="fu">=</span> <span class="dt">TpData</span> {
+<span class="ot">    tpPoints ::</span> [<span class="dt">TpPoint</span>]
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)
+
+<span class="kw">instance</span> <span class="dt">JSON.FromJSON</span> <span class="dt">TpData</span> <span class="kw">where</span>
+    parseJSON (<span class="dt">JSON.Object</span> v) <span class="fu">=</span>
+        <span class="dt">TpData</span> <span class="fu">&lt;$&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;tpPoints&quot;</span>
+
+<span class="kw">instance</span> <span class="dt">JSON.ToJSON</span> <span class="dt">TpData</span> <span class="kw">where</span>
+    toJSON(<span class="dt">TpData</span>{<span class="fu">..</span>}) <span class="fu">=</span> 
+        JSON.object [<span class="st">&quot;tpPoints&quot;</span> <span class="fu">.=</span> tpPoints]</code></pre></div>
+<p>the <code>defaultTpData</code> represents the default <code>TpData</code> we will use if no warp data is found on execution.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">defaultTpData ::</span> <span class="dt">TpData</span>
+defaultTpData <span class="fu">=</span> <span class="dt">TpData</span> {
+    tpPoints <span class="fu">=</span> []
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
+
+<span class="co">-- flip function for ease of chaining computations</span>
+<span class="ot">(|&gt;) ::</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b
+(<span class="fu">|&gt;</span>) <span class="fu">=</span> flip (<span class="fu">$</span>)
+
+
+<span class="ot">filePathToString ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span>
+filePathToString <span class="fu">=</span> Path.encodeString
+
+
+
+<span class="co">-- Data Loading</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="co">-- parse tpPoint</span>
+
+<span class="co">-- parse tpData</span>
+
+<span class="ot">dieJSONParseError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
+dieJSONParseError jsonFilePath err <span class="fu">=</span> 
+    (<span class="st">&quot;parse error in: &quot;</span> <span class="fu">++</span> (show jsonFilePath) <span class="fu">++</span>
+    <span class="st">&quot;\nerror:------\n&quot;</span> <span class="fu">++</span> err) <span class="fu">|&gt;</span>
+    T.pack <span class="fu">|&gt;</span>
+    Turtle.die
+
+<span class="ot">decodeTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
+decodeTpData jsonFilePath <span class="fu">=</span> <span class="kw">do</span>
+    rawInput <span class="ot">&lt;-</span> B.readFile (filePathToString jsonFilePath)
+    <span class="kw">let</span> jsonResult <span class="fu">=</span> JSON.eitherDecode&#39; rawInput  
+
+    <span class="kw">case</span> jsonResult <span class="kw">of</span>
+      <span class="dt">Left</span> err <span class="ot">-&gt;</span> dieJSONParseError jsonFilePath err
+      <span class="dt">Right</span> json <span class="ot">-&gt;</span> return json
+
+<span class="ot">createTpDataFile ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+createTpDataFile jsonFilePath <span class="fu">=</span> saveTpData jsonFilePath defaultTpData
+
+<span class="ot">loadTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
+loadTpData jsonFilePath <span class="fu">=</span> <span class="kw">do</span>
+    exists <span class="ot">&lt;-</span> (Turtle.testfile jsonFilePath)
+    <span class="kw">if</span> exists <span class="kw">then</span>
+        decodeTpData jsonFilePath
+    <span class="kw">else</span>
+       <span class="kw">do</span>
+           createTpDataFile jsonFilePath
+           return defaultTpData
+
+<span class="ot">saveTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">TpData</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+saveTpData jsonFilePath tpData <span class="fu">=</span> <span class="kw">do</span>
+    <span class="kw">let</span> dataBytestring <span class="fu">=</span> JSON.encode tpData
+    Turtle.touch jsonFilePath
+    B.writeFile (filePathToString jsonFilePath) dataBytestring
+
+
+<span class="ot">getTpDataPath ::</span> <span class="dt">IO</span> FilePath
+getTpDataPath <span class="fu">=</span> <span class="kw">do</span>
+    homeFolder <span class="ot">&lt;-</span> Turtle.home
+    return <span class="fu">$</span> homeFolder <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.tpdata&quot;</span>
+<span class="co">-- Common parsers</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+<span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
+readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span> 
+                 Path.fromText <span class="fu">|&gt;</span> 
+                 (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
+                     <span class="kw">then</span> return path
+                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))
+
+
+<span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+tpnameParser <span class="fu">=</span> argument str
+                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
+                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>)
+
+
+<span class="co">-- Command parsers</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="ot">parseAddCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseAddCommand <span class="fu">=</span>  
+    <span class="dt">CommandAdd</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">AddOptions</span> <span class="fu">&lt;$&gt;</span>  tpnameParser <span class="fu">&lt;*&gt;</span> folderParser) <span class="kw">where</span>
+        folderParser <span class="fu">=</span> argument
+                     (str <span class="fu">&gt;&gt;=</span> readFolderPath)
+                     (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
+                      metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
+                      help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
+
+<span class="ot">parseListCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseListCommand <span class="fu">=</span> pure (<span class="dt">CommandList</span> <span class="dt">ListOptions</span>)
+
+<span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseRemoveCommand <span class="fu">=</span> <span class="dt">CommandRemove</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">RemoveOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
+
+<span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">GotoOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
+
+<span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseCommand <span class="fu">=</span> subparser
+    <span class="co">-- add command</span>
+    ((command <span class="st">&quot;add&quot;</span> (info (helper <span class="fu">&lt;*&gt;</span> parseAddCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;add a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- list command</span>
+    (command <span class="st">&quot;list&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseListCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;list all teleport points&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- remove command</span>
+    (command <span class="st">&quot;remove&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseRemoveCommand) (fullDesc <span class="fu">&lt;&gt;</span>progDesc <span class="st">&quot;remove a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- goto command</span>
+    (command <span class="st">&quot;goto&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseGotoCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;go to a created teleport point&quot;</span>))))
+
+<span class="co">-- Stream Helpers</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="ot">setErrorColor ::</span> <span class="dt">IO</span> ()
+setErrorColor <span class="fu">=</span> ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Red</span>]    
+
+
+<span class="ot">tpPointPrint ::</span> <span class="dt">TpPoint</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+tpPointPrint tpPoint <span class="fu">=</span> <span class="kw">do</span>
+    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+    putStr (name tpPoint)
+    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
+    putStr <span class="st">&quot;\t&quot;</span>
+    putStr (absFolderPath tpPoint)
+    putStr <span class="st">&quot;\n&quot;</span>
+
+<span class="co">-- Add command runner</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="ot">folderNotFoundError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+folderNotFoundError path <span class="fu">=</span>
+    setErrorColor <span class="fu">&gt;&gt;</span> 
+    (<span class="st">&quot;unable to find folder: &quot;</span> <span class="fu">++</span> (show path)) <span class="fu">|&gt;</span>
+    T.pack <span class="fu">|&gt;</span>
+    Turtle.die
+
+<span class="ot">needFolderNotFileError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+needFolderNotFileError path <span class="fu">=</span> 
+    setErrorColor <span class="fu">&gt;&gt;</span>
+    (<span class="st">&quot;expected folder, not file: &quot;</span> <span class="fu">++</span> (show path)) <span class="fu">|&gt;</span>
+    T.pack <span class="fu">|&gt;</span>
+    Turtle.die
+
+<span class="ot">dieIfFolderNotFound ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+dieIfFolderNotFound path <span class="fu">=</span> 
+    <span class="kw">do</span>
+        folderExists <span class="ot">&lt;-</span> Turtle.testdir path
+        fileExists <span class="ot">&lt;-</span> Turtle.testfile path
+        <span class="co">-- error checking</span>
+        when fileExists (needFolderNotFileError path)
+        unless folderExists (folderNotFoundError path)
+       <span class="co">-- we know the folder exists</span>
+
+<span class="ot">dieTpPointExists ::</span> <span class="dt">TpPoint</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+dieTpPointExists tpPoint  <span class="fu">=</span>  <span class="kw">do</span>
+    setErrorColor
+    putStrLn (<span class="st">&quot;teleport point &quot;</span> <span class="fu">++</span> (name tpPoint) <span class="fu">++</span> <span class="st">&quot; already exists:\n&quot;</span>)
+    tpPointPrint tpPoint
+    Turtle.die <span class="st">&quot;&quot;</span>
+
+<span class="ot">runAdd ::</span> <span class="dt">AddOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+runAdd <span class="dt">AddOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
+    dieIfFolderNotFound folderPath
+    tpDataPath <span class="ot">&lt;-</span> getTpDataPath
+    tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
+    absFolderPath <span class="ot">&lt;-</span> Turtle.realpath folderPath
+    
+    <span class="kw">let</span> existingTpPoint <span class="fu">=</span> find (\tp <span class="ot">-&gt;</span> name tp <span class="fu">==</span> addname) (tpPoints tpData)
+    <span class="kw">case</span> existingTpPoint <span class="kw">of</span>
+        <span class="dt">Just</span> tpPoint <span class="ot">-&gt;</span> dieTpPointExists tpPoint
+        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+                        <span class="kw">let</span> newTpPoint <span class="fu">=</span> <span class="dt">TpPoint</span> {
+                            name <span class="fu">=</span> addname,
+                            absFolderPath <span class="fu">=</span> filePathToString absFolderPath
+                        }
+                      
+                        putStrLn <span class="st">&quot;creating teleport point: \n&quot;</span>
+                        tpPointPrint newTpPoint
+
+                        <span class="kw">let</span> newTpData <span class="fu">=</span> <span class="dt">TpData</span> {
+                             tpPoints <span class="fu">=</span>  newTpPoint<span class="fu">:</span>(tpPoints tpData)   
+                        }
+                        
+
+                        saveTpData tpDataPath newTpData
+    
+<span class="co">-- List Command</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+
+<span class="ot">runList ::</span> <span class="dt">ListOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+runList <span class="dt">ListOptions</span> <span class="fu">=</span> <span class="kw">do</span>
+    tpDataPath <span class="ot">&lt;-</span> getTpDataPath
+    tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
+    <span class="kw">let</span> num_points <span class="fu">=</span> length <span class="fu">$</span> tpPoints tpData
+    putStr <span class="st">&quot;teleport points: &quot;</span>
+
+    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
+    putStr <span class="fu">$</span> <span class="st">&quot;(total &quot;</span> <span class="fu">&lt;&gt;</span> (show num_points) <span class="fu">&lt;&gt;</span>  <span class="st">&quot;)\n&quot;</span>
+    forM_ (tpPoints tpData) tpPointPrint
+    
+
+<span class="co">-- Remove Command</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="ot">dieTpPointNotFound ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span><span class="dt">IO</span> ()
+dieTpPointNotFound name <span class="fu">=</span> 
+    setErrorColor <span class="fu">&gt;&gt;</span>
+    (name <span class="fu">++</span> <span class="st">&quot; tp point not found&quot;</span>) <span class="fu">|&gt;</span>
+    T.pack <span class="fu">|&gt;</span>
+    Turtle.die
+
+<span class="ot">runRemove ::</span> <span class="dt">RemoveOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+runRemove <span class="dt">RemoveOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
+    tpDataPath <span class="ot">&lt;-</span> getTpDataPath
+    tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
+
+    <span class="kw">let</span> wantedTpPoint <span class="fu">=</span> find (\tp <span class="ot">-&gt;</span> name tp <span class="fu">==</span> removename) (tpPoints tpData)
+    <span class="kw">case</span> wantedTpPoint <span class="kw">of</span>
+        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> dieTpPointNotFound removename
+        <span class="dt">Just</span> _ <span class="ot">-&gt;</span>  <span class="kw">do</span>
+                    <span class="kw">let</span> newTpPoints <span class="fu">=</span> filter (\tp <span class="ot">-&gt;</span> name tp <span class="fu">/=</span> removename)
+                                               (tpPoints tpData)
+                    <span class="kw">let</span> newTpData <span class="fu">=</span> tpData {
+                        tpPoints <span class="fu">=</span> newTpPoints
+                    }
+
+                    saveTpData tpDataPath newTpData
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+                    putStr <span class="st">&quot;removed teleport point [&quot;</span>
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
+                    putStr removename
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+                    putStr <span class="st">&quot;]&quot;</span>
+                    
+
+<span class="ot">runGoto ::</span> <span class="dt">GotoOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+runGoto <span class="dt">GotoOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
+    tpDataPath <span class="ot">&lt;-</span> getTpDataPath
+    tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
+    
+    <span class="kw">let</span> wantedTpPoint <span class="fu">=</span> find (\tp <span class="ot">-&gt;</span> name tp <span class="fu">==</span> gotoname) (tpPoints tpData)
+    <span class="kw">case</span> wantedTpPoint <span class="kw">of</span>
+        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> dieTpPointNotFound gotoname
+        <span class="dt">Just</span> tpPoint <span class="ot">-&gt;</span> <span class="kw">do</span>
+                             Turtle.echo (T.pack (absFolderPath tpPoint))
+                             Turtle.exit (<span class="dt">Turtle.ExitFailure</span> <span class="dv">2</span>) 
+      
+<span class="ot">run ::</span> <span class="dt">Command</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+run command <span class="fu">=</span> 
+    <span class="kw">case</span> command <span class="kw">of</span>
+        <span class="dt">CommandAdd</span> addOpt <span class="ot">-&gt;</span> runAdd addOpt
+        <span class="dt">CommandList</span> listOpt <span class="ot">-&gt;</span> runList listOpt
+        <span class="dt">CommandRemove</span> removeOpt <span class="ot">-&gt;</span> runRemove removeOpt
+        <span class="dt">CommandGoto</span> gotoOpt <span class="ot">-&gt;</span> runGoto gotoOpt
+        other <span class="fu">@</span> _ <span class="ot">-&gt;</span> print other</code></pre></div>
