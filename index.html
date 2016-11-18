@@ -1,3 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="pandoc.css" type="text/css" />
+</head>
+<body>
+<h1>
+Teleport - A haskell tutorial on Turtle, JSON and having fun
+</h1>
+<p>The command line application we are building is called teleport. It's a quick way to navigate the file system.</p>
+<h3>
+<pre> tp add <warpname> [warppath] </pre>
+</h3>
+<p>add a &quot;warp point&quot; that allows us to come back to the folder. By default, the current working directory is pointed by the name. An alternate path can be supplied</p>
+<h3>
+<pre> tp list </pre>
+</h3>
+<p>list all warp points</p>
+<h3>
+tp goto <warp point>
+</h3>
+go to the warp point. This is complicated, since we are not allowed to change the working directory of the shell. So, we will write a simple shell script wrapper around
+<pre> teleport </pre>
+<p>.</p>
+<ul>
+<li>1</li>
+<li>2</li>
+<li>3</li>
+</ul>
 <p>First thing's first, let us get the MIT license out of the way.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">--Copyright (c) 2015 Siddharth Bhat</span>
 
@@ -72,6 +143,57 @@ main <span class="fu">=</span> <span class="kw">do</span>
                         progDesc tpProgDesc <span class="fu">&lt;&gt;</span>
                         header tpHeader))
     run command</code></pre></div>
+<p>Explain how parsers work in <code>optparse-applicative</code> and how to compose them</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseCommand <span class="fu">=</span> subparser
+    <span class="co">-- add command</span>
+    ((command <span class="st">&quot;add&quot;</span> (info (helper <span class="fu">&lt;*&gt;</span> parseAddCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;add a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- list command</span>
+    (command <span class="st">&quot;list&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseListCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;list all teleport points&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- remove command</span>
+    (command <span class="st">&quot;remove&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseRemoveCommand) (fullDesc <span class="fu">&lt;&gt;</span>progDesc <span class="st">&quot;remove a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
+    <span class="co">-- goto command</span>
+    (command <span class="st">&quot;goto&quot;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseGotoCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;go to a created teleport point&quot;</span>))))
+
+<span class="co">-- Common parsers</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+<span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
+readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span> 
+                 Path.fromText <span class="fu">|&gt;</span> 
+                 (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
+                     <span class="kw">then</span> return path
+                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))
+
+
+<span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+tpnameParser <span class="fu">=</span> argument str
+                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
+                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>)
+
+
+<span class="co">-- Command parsers</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+
+<span class="ot">parseAddCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseAddCommand <span class="fu">=</span>  
+    <span class="dt">CommandAdd</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">AddOptions</span> <span class="fu">&lt;$&gt;</span>  tpnameParser <span class="fu">&lt;*&gt;</span> folderParser) <span class="kw">where</span>
+        folderParser <span class="fu">=</span> argument
+                     (str <span class="fu">&gt;&gt;=</span> readFolderPath)
+                     (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
+                      metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
+                      help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
+
+<span class="ot">parseListCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseListCommand <span class="fu">=</span> pure (<span class="dt">CommandList</span> <span class="dt">ListOptions</span>)
+
+<span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseRemoveCommand <span class="fu">=</span> <span class="dt">CommandRemove</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">RemoveOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
+
+<span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">GotoOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)</code></pre></div>
 <p>We're creating <code>Options</code> datatypes to store the options.</p>
 <ul>
 <li><code>ListOptions</code> stores the options that listing will have (which are none)</li>
@@ -199,57 +321,6 @@ saveTpData jsonFilePath tpData <span class="fu">=</span> <span class="kw">do</sp
 getTpDataPath <span class="fu">=</span> <span class="kw">do</span>
     homeFolder <span class="ot">&lt;-</span> Turtle.home
     return <span class="fu">$</span> homeFolder <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.tpdata&quot;</span>
-<span class="co">-- Common parsers</span>
-<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
-<span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
-readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span> 
-                 Path.fromText <span class="fu">|&gt;</span> 
-                 (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
-                     <span class="kw">then</span> return path
-                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))
-
-
-<span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
-tpnameParser <span class="fu">=</span> argument str
-                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
-                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>)
-
-
-<span class="co">-- Command parsers</span>
-<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
-
-<span class="ot">parseAddCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseAddCommand <span class="fu">=</span>  
-    <span class="dt">CommandAdd</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">AddOptions</span> <span class="fu">&lt;$&gt;</span>  tpnameParser <span class="fu">&lt;*&gt;</span> folderParser) <span class="kw">where</span>
-        folderParser <span class="fu">=</span> argument
-                     (str <span class="fu">&gt;&gt;=</span> readFolderPath)
-                     (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
-                      metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
-                      help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
-
-<span class="ot">parseListCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseListCommand <span class="fu">=</span> pure (<span class="dt">CommandList</span> <span class="dt">ListOptions</span>)
-
-<span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseRemoveCommand <span class="fu">=</span> <span class="dt">CommandRemove</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">RemoveOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
-
-<span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">GotoOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
-
-<span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseCommand <span class="fu">=</span> subparser
-    <span class="co">-- add command</span>
-    ((command <span class="st">&quot;add&quot;</span> (info (helper <span class="fu">&lt;*&gt;</span> parseAddCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;add a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
-    <span class="co">-- list command</span>
-    (command <span class="st">&quot;list&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseListCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;list all teleport points&quot;</span>))) <span class="fu">&lt;&gt;</span>
-    <span class="co">-- remove command</span>
-    (command <span class="st">&quot;remove&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseRemoveCommand) (fullDesc <span class="fu">&lt;&gt;</span>progDesc <span class="st">&quot;remove a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
-    <span class="co">-- goto command</span>
-    (command <span class="st">&quot;goto&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseGotoCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;go to a created teleport point&quot;</span>))))
-
 <span class="co">-- Stream Helpers</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
@@ -396,3 +467,5 @@ run command <span class="fu">=</span>
         <span class="dt">CommandRemove</span> removeOpt <span class="ot">-&gt;</span> runRemove removeOpt
         <span class="dt">CommandGoto</span> gotoOpt <span class="ot">-&gt;</span> runGoto gotoOpt
         other <span class="fu">@</span> _ <span class="ot">-&gt;</span> print other</code></pre></div>
+</body>
+</html>

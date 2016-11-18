@@ -1,3 +1,29 @@
+
+<h1> Teleport - A haskell tutorial on Turtle, JSON and having fun</h1>
+
+The command line application we are building is called teleport. It's a 
+quick way to navigate the file system.
+
+<h3> <pre> tp add <warpname> [warppath] </pre> </h3>
+
+add a "warp point" that allows us to come back to the folder.
+By default, the current working directory is pointed by the name. An 
+alternate path can be supplied
+
+<h3> <pre> tp list </pre> </h3>
+
+list all warp points
+
+<h3> tp goto <warp point> </h3>
+
+go to the warp point. This is complicated, since we are not allowed to change
+the working directory of the shell. So, we will write a simple shell
+script wrapper around <pre> teleport </pre>.
+
++ 1
++ 2
++ 3
+
 First thing's first, let us get the MIT license out of the way.
 
 \begin{code}
