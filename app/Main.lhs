@@ -1,30 +1,70 @@
 
 <h1> Teleport - A haskell tutorial on Turtle, JSON and having fun</h1>
 
-The command line application we are building is called teleport. It's a 
-quick way to navigate the file system.
 
-<h3> <pre> tp add <warpname> [warppath] </pre> </h3>
+<h2> Goal </h2>
+
+
+We're going to build a command line application called `teleport`,
+It allows people to add "warp points" to navigate the file system. These
+can be added, deleted, listed, and goto'd.
+
+<h3> Commands </h3>
+
+<h4> tp add  &lt;warpname&gt; [warppath] </h4>
 
 add a "warp point" that allows us to come back to the folder.
 By default, the current working directory is pointed by the name. An 
-alternate path can be supplied
+alternate path can be supplied.
 
-<h3> <pre> tp list </pre> </h3>
+<h5> Example Usage </h5>
+
+```
+teleport-haskell [master●] tp add teleport-hs
+creating teleport point:
+
+teleport-hs	/Users/bollu/play/teleport-haskell/
+```
+
+<h4> tp list </h4>
 
 list all warp points
 
-<h3> tp goto <warp point> </h3>
+<h5> Example Usage </h5>
+
+```
+teleport-haskell [master●] tp list
+teleport points: (total 3)
+se	/Users/bollu/play/se/
+sf	/Users/bollu/play/software-foundations/
+tp	/Users/bollu/prog/teleport-haskell/
+```
+
+<h4> tp goto &lt;warp point&gt; </h4>
 
 go to the warp point. This is complicated, since we are not allowed to change
 the working directory of the shell. So, we will write a simple shell
-script wrapper around <pre> teleport </pre>.
+script wrapper around teleport. 
 
-+ 1
-+ 2
-+ 3
+The shell script is called `teleport.sh`
 
+
+<h4> tp remove &lt;warp point&gt; </h4>
+
+Remove an existing warp point.
+
+<h5> Example Usage </h5>
+```
+teleport-haskell [master●] tp remove teleport-hs
+removed teleport point [teleport-hs]
+```
+
+
+<h2> Code </h2>
+
+Let's start reading the code, and learn about the libraries as we go along
 First thing's first, let us get the MIT license out of the way.
+
 
 \begin{code}
 --Copyright (c) 2015 Siddharth Bhat
@@ -66,33 +106,60 @@ get to it
 {-# LANGUAGE RecordWildCards #-}
 \end{code}
 
+
 \begin{code}
+import qualified Turtle
+import Prelude hiding (FilePath)
+import Filesystem.Path.CurrentOS as Path
+\end{code}
+`Turtle` is the haskell library we use to interact with the OS. It has
+a nice set of abstractions for dealing with OS specific stuff.
+
+
+We choose to hide `FilePath` since `turtle` (the library for interfacing
+with the OS) has its own version of `FilePath`.
+
+\begin{code}
+import qualified Data.Aeson as JSON
+import Data.Aeson ((.=), (.:))
+\end{code}
+
+We use `Aeson` for reading and writing JSON files. We use JSON to store
+our settings
+
+
+\begin{code}
+import Options.Applicative
 import Control.Monad
 import Data.Traversable
 import Data.Maybe
 import Data.List
+\end{code}
+These are our default imports of standard library stuff.
 
-import Prelude hiding (FilePath)
+
+
+\begin{code}
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T.Encoding
-
-import Options.Applicative
-import Filesystem.Path.CurrentOS as Path
-
-import qualified Turtle
-
-import qualified Data.Aeson as JSON
-import Data.Aeson ((.=), (.:))
-
 import qualified Data.ByteString.Lazy as B
-
-import qualified System.Console.ANSI as ANSI
-
-
-import Debug.Trace
 \end{code}
 
-Explain main in this codebase.
+
+We choose `Text` over `String` since the libraries that we use play along
+nicer with `Text`. `String` is just `[Char]` in haskell, which is quite
+inefficient since its _literally_ a linked list.
+`Text` uses a more efficient representation of text.
+Text is used internally everywhere in the application to manipulate text.
+
+We need `ByteString` to read and write JSON files onto the filesystem. 
+
+\begin{code}
+import qualified System.Console.ANSI as ANSI
+\end{code}
+
+the `ANSI` library is used for coloring our outputs.
+
 \begin{code}
 tpProgDesc :: String
 tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
@@ -100,9 +167,56 @@ tpProgDesc = "use teleport to quickly setup teleport points and move to these " 
 
 tpHeader :: String
 tpHeader = "Teleport: move around your filesystem"
+\end{code}
+
+Strings that are used in our library for descriptions. I prefer to keep these
+as constants rather than hard-code them.
+
+\begin{code}
+-- the combined datatype representing all tp commands
+data Command = CommandList |
+               CommandAdd AddOptions |
+               CommandRemove RemoveOptions |
+               CommandGoto GotoOptions
+    deriving (Show)
+\end{code}
+
+The `Command` sum type represents the commands we can call on `teleport`, and 
+we create options datatypes to store the options.
+
+* `AddOptions` needs the name of the warp point to add, and the path to the folder
+* `RemoveOptions` needs the name of the warp point to remove
+* `GotoOptions` needs the name of the warp point to go to
+* `Command` is the data type that allows us to combine all of this
+   information.
+
+our parser will return a `Command` that tells us what to do.
+
+\begin{code}
+-- options pased to 'tp add'
+data AddOptions = AddOptions {
+    addname :: String,
+    folderPath :: FilePath
+} deriving (Show)
+\end{code}
+
+`tp add` needs the name of the warp point to add, and the path of the folder
+where it should get added to.
+
+\begin{code}
+-- options passed to 'tp remove'
+data RemoveOptions = RemoveOptions {
+    removename :: String
+} deriving (Show)
+
+-- options parrsed to 'tp goto'
+data GotoOptions = GotoOptions {
+    gotoname :: String
+} deriving(Show)
+\end{code}
 
 
-
+\begin{code}
 -- | A version of 'execParser' which shows full help on error.                
 --                                                                            
 -- The regular 'execParser' only prints usage on error, which doesn't         
@@ -113,20 +227,70 @@ showHelpOnErrorExecParser = customExecParser (prefs showHelpOnError)
 
 main :: IO ()
 main = do 
+    -- command :: Command
     command <- showHelpOnErrorExecParser (info (helper <*> parseCommand)
                        (fullDesc  <>
                         progDesc tpProgDesc <>
                         header tpHeader))
+    -- run :: IO ()
     run command
 \end{code}
+Let's unpack the types in `main`.
 
-Explain how parsers work in `optparse-applicative`  and how to compose them
+our core `Parser` is
+```haskell
+parseCommand :: Parser Command
+```
+which we run using `showHelpOnErrorExecParser` which executes the parser,
+and shows an error in case the parser fails to execute. If the parse
+succeeds, it calls `run` which runs `command :: Command`
+
+<h4> `helper` </h4>
+```haskell
+helper :: Parser (a -> a) 
+```
+`helper` takes any parser, and adds "help" as an option to it. We apply
+it to all parsers so `--help` works.
+
+<h4> `info` </h4>
+```haskell
+info :: Parser a -> InfoMod a -> ParserInfo a
+```
+`info` takes a parser and allows us to attach a `InfoMod` which adds help and
+display information to the parser
+
+
+<h4> `fullDesc`, progDesc`, `header` </h4>
+```haskell
+fullDesc :: InfoMod a
+progDesc :: String -> InfoMod a
+header :: String -> InfoMod a
+```
+all of these allow us to attach `InfoMod` to a `Parser`, which changes the
+information that is printed with a `Parser`.
+
+They have a `Monoid` instance, and the `<>` is the `mappend` operator that
+allows us to "smash together" two modifiers into one single modifier. One
+can think of `<>` as `++` for lists: it lets us collect two lists into one.
+
+
+<h4> `showHelpOnErrorExecParser` </h4> 
+As explained above, it takes a parser and allows it to show help information
+when the parse fails. It executed the parser passed to it (`parseCommand`)
 
 \begin{code}
 parseCommand :: Parser Command
 parseCommand = subparser
     -- add command
-    ((command "add" (info (helper <*> parseAddCommand) (fullDesc <> progDesc "add a teleport point"))) <>
+    ((command 
+        "add" -- command name
+        (info -- attach help information to the parser 
+            (helper <*> parseAddCommand) -- core parser with the --help option
+            (fullDesc <> progDesc "add a teleport point") -- description of command (for info)
+        )
+    ) 
+    <> -- combine with the next command
+
     -- list command
     (command "list"
         (info (helper <*> parseListCommand) (fullDesc <> progDesc "list all teleport points"))) <>
@@ -137,6 +301,39 @@ parseCommand = subparser
     (command "goto"
         (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
 
+\end{code}
+the `subparser` is a function that lets us create a `Parser` out of of a
+`command`. We smash the `command`s together with their monoid instance (`<>`).
+
+The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
+`main` to attach information and help to the parser.
+
+
+\begin{code}
+-- Command parsers
+-- """""""""""""""
+
+parseAddCommand :: Parser Command
+parseAddCommand =  
+    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
+        folderParser = argument
+                     (str >>= readFolderPath)
+                     (value "./"  <>
+                      metavar "FOLDERPATH" <>
+                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
+
+parseListCommand :: Parser Command
+parseListCommand = pure (CommandList)
+
+parseRemoveCommand :: Parser Command
+parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
+
+parseGotoCommand :: Parser Command
+parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
+
+\end{code}
+
+\begin{code}
 -- Common parsers
 -- """"""""""""""
 readFolderPath :: String -> ReadM FilePath
@@ -153,64 +350,8 @@ tpnameParser = argument str
                   help "name of the teleport point for usage")
 
 
--- Command parsers
--- """""""""""""""
-
-parseAddCommand :: Parser Command
-parseAddCommand =  
-    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
-        folderParser = argument
-                     (str >>= readFolderPath)
-                     (value "./"  <>
-                      metavar "FOLDERPATH" <>
-                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
-
-parseListCommand :: Parser Command
-parseListCommand = pure (CommandList ListOptions)
-
-parseRemoveCommand :: Parser Command
-parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
-
-parseGotoCommand :: Parser Command
-parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
-
 \end{code}
 
-We're creating `Options` datatypes to store the options.
-
-* `ListOptions` stores the options that listing will have (which are none)
-* `AddOptions` needs the name of the warp point to add, and the path to the folder
-* `RemoveOptions` needs the name of the warp point to remove
-* `GotoOptions` needs the name of the warp point to go to
-* `Command` is the data type that allows us to combine all of this
-   information.
-
-\begin{code}
--- options passed to 'tp list'
-data ListOptions = ListOptions deriving (Show)
-
--- options pased to 'tp add'
-data AddOptions = AddOptions {
-    addname :: String,
-    folderPath :: FilePath
-} deriving (Show)
-
--- options passed to 'tp remove'
-data RemoveOptions = RemoveOptions {
-    removename :: String
-} deriving (Show)
-
--- options parrsed to 'tp goto'
-data GotoOptions = GotoOptions {
-    gotoname :: String
-} deriving(Show)
--- the combined datatype representing all tp commands
-data Command = CommandList ListOptions |
-               CommandAdd AddOptions |
-               CommandRemove RemoveOptions |
-               CommandGoto GotoOptions
-    deriving (Show)
-\end{code}
 
 
 This is our program representation. The `TpPoint` class stores the
@@ -408,8 +549,8 @@ runAdd AddOptions{..} = do
 -- """"""""""""
 
 
-runList :: ListOptions -> IO ()
-runList ListOptions = do
+runList :: IO ()
+runList = do
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
     let num_points = length $ tpPoints tpData
@@ -470,7 +611,7 @@ run :: Command -> IO ()
 run command = 
     case command of
         CommandAdd addOpt -> runAdd addOpt
-        CommandList listOpt -> runList listOpt
+        CommandList -> runList
         CommandRemove removeOpt -> runRemove removeOpt
         CommandGoto gotoOpt -> runGoto gotoOpt
         other @ _ -> print other

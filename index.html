@@ -49,27 +49,54 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h1>
 Teleport - A haskell tutorial on Turtle, JSON and having fun
 </h1>
-<p>The command line application we are building is called teleport. It's a quick way to navigate the file system.</p>
+<h2>
+Goal
+</h2>
+<p>We're going to build a command line application called <code>teleport</code>, It allows people to add &quot;warp points&quot; to navigate the file system. These can be added, deleted, listed, and goto'd.</p>
 <h3>
-<pre> tp add <warpname> [warppath] </pre>
+Commands
 </h3>
-<p>add a &quot;warp point&quot; that allows us to come back to the folder. By default, the current working directory is pointed by the name. An alternate path can be supplied</p>
-<h3>
-<pre> tp list </pre>
-</h3>
+<h4>
+tp add &lt;warpname&gt; [warppath]
+</h4>
+<p>add a &quot;warp point&quot; that allows us to come back to the folder. By default, the current working directory is pointed by the name. An alternate path can be supplied.</p>
+<h5>
+Example Usage
+</h5>
+<pre><code>teleport-haskell [master●] tp add teleport-hs
+creating teleport point:
+
+teleport-hs /Users/bollu/play/teleport-haskell/</code></pre>
+<h4>
+tp list
+</h4>
 <p>list all warp points</p>
-<h3>
-tp goto <warp point>
-</h3>
-go to the warp point. This is complicated, since we are not allowed to change the working directory of the shell. So, we will write a simple shell script wrapper around
-<pre> teleport </pre>
-<p>.</p>
-<ul>
-<li>1</li>
-<li>2</li>
-<li>3</li>
-</ul>
-<p>First thing's first, let us get the MIT license out of the way.</p>
+<h5>
+Example Usage
+</h5>
+<pre><code>teleport-haskell [master●] tp list
+teleport points: (total 3)
+se  /Users/bollu/play/se/
+sf  /Users/bollu/play/software-foundations/
+tp  /Users/bollu/prog/teleport-haskell/</code></pre>
+<h4>
+tp goto &lt;warp point&gt;
+</h4>
+<p>go to the warp point. This is complicated, since we are not allowed to change the working directory of the shell. So, we will write a simple shell script wrapper around teleport.</p>
+<p>The shell script is called <code>teleport.sh</code></p>
+<h4>
+tp remove &lt;warp point&gt;
+</h4>
+<p>Remove an existing warp point.</p>
+<h5>
+Example Usage
+</h5>
+<pre><code>teleport-haskell [master●] tp remove teleport-hs
+removed teleport point [teleport-hs]</code></pre>
+<h2>
+Code
+</h2>
+<p>Let's start reading the code, and learn about the libraries as we go along First thing's first, let us get the MIT license out of the way.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">--Copyright (c) 2015 Siddharth Bhat</span>
 
 <span class="co">--Permission is hereby granted, free of charge, to any person obtaining</span>
@@ -95,40 +122,68 @@ go to the warp point. This is complicated, since we are not allowed to change th
 <code>RecordWildCards</code> is more interesting, and I'll describe it in more detail when we get to it
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
 <span class="ot">{-# LANGUAGE RecordWildCards #-}</span></code></pre></div>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Control.Monad</span>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Turtle</span>
+<span class="kw">import </span><span class="dt">Prelude</span> <span class="kw">hiding</span> (<span class="dt">FilePath</span>)
+<span class="kw">import </span><span class="dt">Filesystem.Path.CurrentOS</span> <span class="kw">as</span> <span class="dt">Path</span></code></pre></div>
+<p><code>Turtle</code> is the haskell library we use to interact with the OS. It has a nice set of abstractions for dealing with OS specific stuff.</p>
+<p>We choose to hide <code>FilePath</code> since <code>turtle</code> (the library for interfacing with the OS) has its own version of <code>FilePath</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Data.Aeson</span> <span class="kw">as</span> <span class="dt">JSON</span>
+<span class="kw">import </span><span class="dt">Data.Aeson</span> ((.=), (.:))</code></pre></div>
+<p>We use <code>Aeson</code> for reading and writing JSON files. We use JSON to store our settings</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Options.Applicative</span>
+<span class="kw">import </span><span class="dt">Control.Monad</span>
 <span class="kw">import </span><span class="dt">Data.Traversable</span>
 <span class="kw">import </span><span class="dt">Data.Maybe</span>
-<span class="kw">import </span><span class="dt">Data.List</span>
-
-<span class="kw">import </span><span class="dt">Prelude</span> <span class="kw">hiding</span> (<span class="dt">FilePath</span>)
-<span class="kw">import qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">T</span>
+<span class="kw">import </span><span class="dt">Data.List</span></code></pre></div>
+<p>These are our default imports of standard library stuff.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">T</span>
 <span class="kw">import qualified</span> <span class="dt">Data.Text.Encoding</span> <span class="kw">as</span> <span class="dt">T.Encoding</span>
-
-<span class="kw">import </span><span class="dt">Options.Applicative</span>
-<span class="kw">import </span><span class="dt">Filesystem.Path.CurrentOS</span> <span class="kw">as</span> <span class="dt">Path</span>
-
-<span class="kw">import qualified</span> <span class="dt">Turtle</span>
-
-<span class="kw">import qualified</span> <span class="dt">Data.Aeson</span> <span class="kw">as</span> <span class="dt">JSON</span>
-<span class="kw">import </span><span class="dt">Data.Aeson</span> ((.=), (.:))
-
-<span class="kw">import qualified</span> <span class="dt">Data.ByteString.Lazy</span> <span class="kw">as</span> <span class="dt">B</span>
-
-<span class="kw">import qualified</span> <span class="dt">System.Console.ANSI</span> <span class="kw">as</span> <span class="dt">ANSI</span>
-
-
-<span class="kw">import </span><span class="dt">Debug.Trace</span></code></pre></div>
-Explain main in this codebase.
+<span class="kw">import qualified</span> <span class="dt">Data.ByteString.Lazy</span> <span class="kw">as</span> <span class="dt">B</span></code></pre></div>
+<p>We choose <code>Text</code> over <code>String</code> since the libraries that we use play along nicer with <code>Text</code>. <code>String</code> is just <code>[Char]</code> in haskell, which is quite inefficient since its <em>literally</em> a linked list. <code>Text</code> uses a more efficient representation of text. Text is used internally everywhere in the application to manipulate text.</p>
+<p>We need <code>ByteString</code> to read and write JSON files onto the filesystem.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">System.Console.ANSI</span> <span class="kw">as</span> <span class="dt">ANSI</span></code></pre></div>
+<p>the <code>ANSI</code> library is used for coloring our outputs.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">tpProgDesc ::</span> <span class="dt">String</span>
 tpProgDesc <span class="fu">=</span> <span class="st">&quot;use teleport to quickly setup teleport points and move to these &quot;</span> <span class="fu">++</span>
                <span class="st">&quot;when needed&quot;</span>
 
 <span class="ot">tpHeader ::</span> <span class="dt">String</span>
-tpHeader <span class="fu">=</span> <span class="st">&quot;Teleport: move around your filesystem&quot;</span>
+tpHeader <span class="fu">=</span> <span class="st">&quot;Teleport: move around your filesystem&quot;</span></code></pre></div>
+<p>Strings that are used in our library for descriptions. I prefer to keep these as constants rather than hard-code them.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- the combined datatype representing all tp commands</span>
+<span class="kw">data</span> <span class="dt">Command</span> <span class="fu">=</span> <span class="dt">CommandList</span> <span class="dt">ListOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandAdd</span> <span class="dt">AddOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandRemove</span> <span class="dt">RemoveOptions</span> <span class="fu">|</span>
+               <span class="dt">CommandGoto</span> <span class="dt">GotoOptions</span>
+    <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<p>The <code>Command</code> sum type represents the commands we can call on <code>teleport</code>, and we create options datatypes to store the options.</p>
+<ul>
+<li><code>ListOptions</code> stores the options that listing will have (which are none)</li>
+<li><code>AddOptions</code> needs the name of the warp point to add, and the path to the folder</li>
+<li><code>RemoveOptions</code> needs the name of the warp point to remove</li>
+<li><code>GotoOptions</code> needs the name of the warp point to go to</li>
+<li><code>Command</code> is the data type that allows us to combine all of this information.</li>
+</ul>
+<p>our parser will return a <code>Command</code> that tells us what to do.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- options passed to &#39;tp list&#39;</span>
+<span class="kw">data</span> <span class="dt">ListOptions</span> <span class="fu">=</span> <span class="dt">ListOptions</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<p><code>tp list</code> has no options, so the type is empty. So, we don't need to define <code>ListOptions</code>, but it's nice for uniformity</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- options pased to &#39;tp add&#39;</span>
+<span class="kw">data</span> <span class="dt">AddOptions</span> <span class="fu">=</span> <span class="dt">AddOptions</span> {
+<span class="ot">    addname ::</span> <span class="dt">String</span>,
+<span class="ot">    folderPath ::</span> FilePath
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<p><code>tp add</code> needs the name of the warp point to add, and the path of the folder where it should get added to.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- options passed to &#39;tp remove&#39;</span>
+<span class="kw">data</span> <span class="dt">RemoveOptions</span> <span class="fu">=</span> <span class="dt">RemoveOptions</span> {
+<span class="ot">    removename ::</span> <span class="dt">String</span>
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)
 
-
-
-<span class="co">-- | A version of &#39;execParser&#39; which shows full help on error.                </span>
+<span class="co">-- options parrsed to &#39;tp goto&#39;</span>
+<span class="kw">data</span> <span class="dt">GotoOptions</span> <span class="fu">=</span> <span class="dt">GotoOptions</span> {
+<span class="ot">    gotoname ::</span> <span class="dt">String</span>
+} <span class="kw">deriving</span>(<span class="dt">Show</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- | A version of &#39;execParser&#39; which shows full help on error.                </span>
 <span class="co">--                                                                            </span>
 <span class="co">-- The regular &#39;execParser&#39; only prints usage on error, which doesn&#39;t         </span>
 <span class="co">-- include the options, subcommands, or mention of the help switch            </span>
@@ -143,7 +198,19 @@ main <span class="fu">=</span> <span class="kw">do</span>
                         progDesc tpProgDesc <span class="fu">&lt;&gt;</span>
                         header tpHeader))
     run command</code></pre></div>
-<p>Explain how parsers work in <code>optparse-applicative</code> and how to compose them</p>
+<p>Let's unpack the types in <code>main</code>.</p>
+<p>our core <code>Parser</code> is</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span></code></pre></div>
+<h4>
+<code>helper</code>
+</h4>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">helper ::</span> <span class="dt">Parser</span> (a <span class="ot">-&gt;</span> a) </code></pre></div>
+<p><code>helper</code> takes any parser, and adds &quot;help&quot; as an option to it. We apply it to all parsers so <code>--help</code> works.</p>
+<h4>
+<code>info</code>
+</h4>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">info ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a <span class="ot">-&gt;</span> <span class="dt">ParserInfo</span> a</code></pre></div>
+<p><code>info</code> takes a parser and allows us to attach a <code>InfoMod</code> which adds help and display information to the parser</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
 parseCommand <span class="fu">=</span> subparser
     <span class="co">-- add command</span>
@@ -194,38 +261,6 @@ parseRemoveCommand <span class="fu">=</span> <span class="dt">CommandRemove</spa
 
 <span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
 parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">GotoOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)</code></pre></div>
-<p>We're creating <code>Options</code> datatypes to store the options.</p>
-<ul>
-<li><code>ListOptions</code> stores the options that listing will have (which are none)</li>
-<li><code>AddOptions</code> needs the name of the warp point to add, and the path to the folder</li>
-<li><code>RemoveOptions</code> needs the name of the warp point to remove</li>
-<li><code>GotoOptions</code> needs the name of the warp point to go to</li>
-<li><code>Command</code> is the data type that allows us to combine all of this information.</li>
-</ul>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- options passed to &#39;tp list&#39;</span>
-<span class="kw">data</span> <span class="dt">ListOptions</span> <span class="fu">=</span> <span class="dt">ListOptions</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="co">-- options pased to &#39;tp add&#39;</span>
-<span class="kw">data</span> <span class="dt">AddOptions</span> <span class="fu">=</span> <span class="dt">AddOptions</span> {
-<span class="ot">    addname ::</span> <span class="dt">String</span>,
-<span class="ot">    folderPath ::</span> FilePath
-} <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="co">-- options passed to &#39;tp remove&#39;</span>
-<span class="kw">data</span> <span class="dt">RemoveOptions</span> <span class="fu">=</span> <span class="dt">RemoveOptions</span> {
-<span class="ot">    removename ::</span> <span class="dt">String</span>
-} <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="co">-- options parrsed to &#39;tp goto&#39;</span>
-<span class="kw">data</span> <span class="dt">GotoOptions</span> <span class="fu">=</span> <span class="dt">GotoOptions</span> {
-<span class="ot">    gotoname ::</span> <span class="dt">String</span>
-} <span class="kw">deriving</span>(<span class="dt">Show</span>)
-<span class="co">-- the combined datatype representing all tp commands</span>
-<span class="kw">data</span> <span class="dt">Command</span> <span class="fu">=</span> <span class="dt">CommandList</span> <span class="dt">ListOptions</span> <span class="fu">|</span>
-               <span class="dt">CommandAdd</span> <span class="dt">AddOptions</span> <span class="fu">|</span>
-               <span class="dt">CommandRemove</span> <span class="dt">RemoveOptions</span> <span class="fu">|</span>
-               <span class="dt">CommandGoto</span> <span class="dt">GotoOptions</span>
-    <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
 <p>This is our program representation. The <code>TpPoint</code> class stores the information of a warp point.</p>
 <p>We will implement the <code>FromJSON</code> and <code>ToJSON</code> typeclasses for both to allow us to save these as JSON files</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- an abstract entity representing a point to which we can tp to</span>
