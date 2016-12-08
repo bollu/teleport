@@ -1,4 +1,5 @@
 #!/bin/bash
+# teleport.sh
 
 function tp() {
     OUTPUT=`teleport-exe $@`

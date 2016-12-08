@@ -52,14 +52,14 @@ Teleport - A haskell tutorial on Turtle, JSON and having fun
 <h2>
 Goal
 </h2>
-<p>We're going to build a command line application called <code>teleport</code>, It allows people to add &quot;warp points&quot; to navigate the file system. These can be added, deleted, listed, and goto'd.</p>
+<p>We’re going to build a command line application called <code>teleport</code>, It allows people to add “warp points” to navigate the file system. These can be added, deleted, listed, and goto’d.</p>
 <h3>
 Commands
 </h3>
 <h4>
 tp add &lt;warpname&gt; [warppath]
 </h4>
-<p>add a &quot;warp point&quot; that allows us to come back to the folder. By default, the current working directory is pointed by the name. An alternate path can be supplied.</p>
+<p>add a “warp point” that allows us to come back to the folder. By default, the current working directory is pointed by the name. An alternate path can be supplied.</p>
 <h5>
 Example Usage
 </h5>
@@ -96,7 +96,7 @@ removed teleport point [teleport-hs]</code></pre>
 <h2>
 Code
 </h2>
-<p>Let's start reading the code, and learn about the libraries as we go along First thing's first, let us get the MIT license out of the way.</p>
+<p>Let’s start reading the code, and learn about the libraries as we go along First thing’s first, let us get the MIT license out of the way.</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">--Copyright (c) 2015 Siddharth Bhat</span>
 
@@ -120,8 +120,8 @@ Code
 <h2 id="haskell-extensions">Haskell Extensions</h2>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="st">#!/usr/bin/env stack</span></code></pre></div>
-<p><code>OverloadedStrings</code> allows us to freely write code in &quot; and have it be treated as String or Data.Text depending on context. It's a handy extension to have around.</p>
-<code>RecordWildCards</code> is more interesting, and I'll describe it in more detail when we get to it
+<p><code>OverloadedStrings</code> allows us to freely write code in &quot; and have it be treated as String or Data.Text depending on context. It’s a handy extension to have around.</p>
+<code>RecordWildCards</code> is more interesting, and I’ll describe it in more detail when we get to it
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
 <span class="ot">{-# LANGUAGE RecordWildCards #-}</span></code></pre></div>
@@ -209,7 +209,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
                         header tpHeader))
     <span class="co">-- run :: IO ()</span>
     run command</code></pre></div>
-<p>Let's unpack the types in <code>main</code>.</p>
+<p>Let’s unpack the types in <code>main</code>.</p>
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span></code></pre></div>
 </h5>
@@ -217,7 +217,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">helper ::</span> <span class="dt">Parser</span> (a <span class="ot">-&gt;</span> a)</code></pre></div>
 </h5>
-<p><code>helper</code> takes any parser, and adds &quot;help&quot; as an option to it. We apply it to all parsers so <code>--help</code> works.</p>
+<p><code>helper</code> takes any parser, and adds “help” as an option to it. We apply it to all parsers so <code>--help</code> works.</p>
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">info ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a <span class="ot">-&gt;</span> <span class="dt">ParserInfo</span> a</code></pre></div>
 </h5>
@@ -228,7 +228,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <span class="ot">header ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a</code></pre></div>
 </h5>
 <p>all of these allow us to attach <code>InfoMod</code> to a <code>Parser</code>, which changes the information that is printed with a <code>Parser</code>.</p>
-<p>They have a <code>Monoid</code> instance, and the <code>&lt;&gt;</code> is the <code>mappend</code> operator that allows us to &quot;smash together&quot; two modifiers into one single modifier. One can think of <code>&lt;&gt;</code> as <code>++</code> for lists: it lets us collect two lists into one.</p>
+<p>They have a <code>Monoid</code> instance, and the <code>&lt;&gt;</code> is the <code>mappend</code> operator that allows us to “smash together” two modifiers into one single modifier. One can think of <code>&lt;&gt;</code> as <code>++</code> for lists: it lets us collect two lists into one.</p>
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">showHelpOnErrorExecParser</code></pre></div>
 </h5>
@@ -297,7 +297,7 @@ tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM St
                     <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
                   help <span class="co">-- :: String -&gt; Mod ArgumentFields String</span>
                     <span class="st">&quot;name of the teleport point for usage&quot;</span>) <span class="co">-- Mod ArgumentFields String</span></code></pre></div>
-<p>Till now, we were creating &quot;command&quot; parsers that parse things like</p>
+<p>Till now, we were creating “command” parsers that parse things like</p>
 <pre><code>$ tp add</code></pre>
 <p>or</p>
 <pre><code>$ tp list</code></pre>
@@ -311,7 +311,7 @@ tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM St
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">ReadM</span> a</code></pre></div>
 </h5>
-<p>I won't explain <code>ReadM</code> here, it's mostly a way to &quot;read something in&quot;. We will mostly start with the <code>ReadM</code> instance</p>
+<p>I won’t explain <code>ReadM</code> here, it’s mostly a way to “read something in”. We will mostly start with the <code>ReadM</code> instance</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">str ::</span> <span class="dt">ReadM</span> <span class="dt">String</span></code></pre></div>
 <p>and use the <code>Functor</code> and <code>Monad</code> instance on <code>str</code> create new <code>ReadM</code> instances. <a href="https://hackage.haskell.org/package/optparse-applicative-0.13.0.0/docs/Options-Applicative-Builder.html#t:ReadM">For more on <code>ReadM</code>, click here</a></p>
 <h5 class="codeheader">
@@ -321,7 +321,7 @@ tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM St
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&lt;&gt;</span><span class="ot"> ::</span> <span class="dt">Monoid</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m
 <span class="ot">mappend ::</span> <span class="dt">Monoid</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m
 mappend <span class="fu">=</span> <span class="fu">&lt;&gt;</span></code></pre></div>
-<p>to &quot;combine&quot; two options together.</p>
+<p>to “combine” two options together.</p>
 <h5 class="codeheader">
 full picture
 </h5>
@@ -344,7 +344,7 @@ Available options:
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 <span class="ot">folderParser ::</span> <span class="dt">Parser</span> FilePath
 folderParser <span class="fu">=</span> argument
-              (str <span class="co">-- :: Parser String</span>
+              (str <span class="co">-- :: ReadM String</span>
                 <span class="fu">&gt;&gt;=</span>
                readFolderPath) <span class="co">-- :: String -&gt; ReadM FilePath</span>
               (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
@@ -352,28 +352,29 @@ folderParser <span class="fu">=</span> argument
               help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
 
 <span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
-readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span>
-                 Path.fromText <span class="fu">|&gt;</span>
-                 (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
-                     <span class="kw">then</span> return path
-                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))</code></pre></div>
+readFolderPath s <span class="fu">=</span> <span class="kw">do</span>
+  <span class="kw">let</span> path <span class="fu">=</span> Path.fromText (T.pack s)
+  <span class="kw">if</span> Path.valid path
+      <span class="kw">then</span> return path
+      <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path))</code></pre></div>
 <p>Here, we look at how to build a more complex argument parser from the simple <code>str</code> argument. We compose <code>str :: ReadM String</code> with <code>readFolderPath ::  String -&gt; ReadM FilePath</code> using their <code>Monad instance</code></p>
+<h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath</code></pre></div>
-<p>There is some fluff with converting from <code>String</code> to <code>Text</code>, but the main part of the code is in using</p>
+</h5>
+<p>There is some fluff with converting from <code>String</code> to <code>Text</code> using <code>T.pack</code>. The main part of the code is in using</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">readerError <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath</code></pre></div>
 <p>to report an error when the path given is invalid.</p>
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">value ::</span> <span class="dt">HasValue</span> f a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Mod</span> f a</code></pre></div>
 </h5>
-<p>We use the <code>value</code> modifier to assign a default value to the option. We use &quot;.&quot; which is the current folder as a default option</p>
+<p>We use the <code>value</code> modifier to assign a default value to the option. We use “.” which is the current folder as a default option</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
 parseRemoveCommand <span class="fu">=</span> fmap (<span class="dt">CommandRemove</span> <span class="fu">.</span> <span class="dt">RemoveOptions</span>) tpnameParser
 
 <span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
 parseGotoCommand <span class="fu">=</span> fmap (<span class="dt">CommandGoto</span> <span class="fu">.</span> <span class="dt">GotoOptions</span>) tpnameParser</code></pre></div>
-<p>This is our program representation. The <code>TpPoint</code> class stores the information of a warp point.</p>
-<p>We will implement the <code>FromJSON</code> and <code>ToJSON</code> typeclasses for both to allow us to save these as JSON files</p>
+<p>we reuse our <code>tpnameParser :: Parser String</code> to parse names. We convert them to <code>Command</code> by first converting them to the correct <code>{Remove, Goto}Options</code> type, and then using the <code>Command{Remove, Goto}</code> constructors</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- an abstract entity representing a point to which we can tp to</span>
 <span class="kw">data</span> <span class="dt">TpPoint</span> <span class="fu">=</span> <span class="dt">TpPoint</span> {
@@ -383,71 +384,80 @@ parseGotoCommand <span class="fu">=</span> fmap (<span class="dt">CommandGoto</s
 
 
 <span class="kw">instance</span> <span class="dt">JSON.FromJSON</span> <span class="dt">TpPoint</span> <span class="kw">where</span>
-     parseJSON (<span class="dt">JSON.Object</span> v) <span class="fu">=</span>
-        <span class="dt">TpPoint</span> <span class="fu">&lt;$&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;name&quot;</span>
-                  <span class="fu">&lt;*&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;absFolderPath&quot;</span>
+     parseJSON (<span class="dt">JSON.Object</span> json) <span class="fu">=</span>
+        liftA2 <span class="dt">TpPoint</span> (json <span class="fu">.:</span> <span class="st">&quot;name&quot;</span>)
+                  (json <span class="fu">.:</span> <span class="st">&quot;absFolderPath&quot;</span>)
 
 <span class="kw">instance</span> <span class="dt">JSON.ToJSON</span> <span class="dt">TpPoint</span> <span class="kw">where</span>
-    toJSON (<span class="dt">TpPoint</span> {<span class="fu">..</span>}) <span class="fu">=</span> 
+    toJSON (<span class="dt">TpPoint</span> {<span class="fu">..</span>}) <span class="fu">=</span>
         JSON.object [ <span class="st">&quot;name&quot;</span> <span class="fu">.=</span> name
                      ,<span class="st">&quot;absFolderPath&quot;</span> <span class="fu">.=</span> absFolderPath]</code></pre></div>
-<p>The <code>TpData</code> class stores all the warp points together.</p>
+<p>This is our program representation. The <code>TpPoint</code> class stores the information of a warp point.</p>
+<p>We implement the <code>FromJSON</code> and <code>ToJSON</code> typeclasses for both to allow us to save these as JSON files</p>
+<h5 class="codeheader">
+<code>FromJSON</code>
+</h5>
+<p>We are given an <code>(Object json) :: Value</code>, and we need to produce a <code>Parser</code></p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(.:) ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">Object</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> a</code></pre></div>
+<p>We use <code>(.:)</code>, which when given a JSON <code>Object</code> and the name of a key, gives us a <code>Parser a</code>. This is used to extract the <code>name</code> and the <code>absFolderPath</code> from the JSON object.</p>
+<p>The constructor for <code>TpPoint</code> is lifed into the <code>Parser</code> using <code>liftA2</code></p>
+<h5 class="codeheader">
+<code>ToJSON</code>
+</h5>
+<p>We need to implement</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">toJSON ::</span> a <span class="ot">-&gt;</span> <span class="dt">Value</span></code></pre></div>
+<p>To create a <code>Value</code>, we use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">JSON.object <span class="fu">=</span><span class="ot"> object ::</span> [<span class="dt">Pair</span>] <span class="ot">-&gt;</span> <span class="dt">Value</span></code></pre></div>
+<p>that lets us give it an array of <code>Pair</code> objects and it creates a Value. We make <code>Pair</code> objects using</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(.=) ::</span> <span class="dt">ToJSON</span> v <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> v <span class="ot">-&gt;</span> (kv <span class="fu">~</span> <span class="dt">Pair</span>)</code></pre></div>
+<p>the <code>.=</code> creates any <code>KeyValue</code>. We use it to create a <code>Pair</code> from our a tag name and a value (which has a <code>ToJSON</code> instance)</p>
 <hr/>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- the main data that is loaded from JSON </span>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- the main data that is loaded from JSON</span>
 <span class="kw">data</span> <span class="dt">TpData</span> <span class="fu">=</span> <span class="dt">TpData</span> {
 <span class="ot">    tpPoints ::</span> [<span class="dt">TpPoint</span>]
 } <span class="kw">deriving</span> (<span class="dt">Show</span>)
 
 <span class="kw">instance</span> <span class="dt">JSON.FromJSON</span> <span class="dt">TpData</span> <span class="kw">where</span>
     parseJSON (<span class="dt">JSON.Object</span> v) <span class="fu">=</span>
-        <span class="dt">TpData</span> <span class="fu">&lt;$&gt;</span> v <span class="fu">.:</span> <span class="st">&quot;tpPoints&quot;</span>
+        fmap <span class="dt">TpData</span> (v <span class="fu">.:</span> <span class="st">&quot;tpPoints&quot;</span>)
 
 <span class="kw">instance</span> <span class="dt">JSON.ToJSON</span> <span class="dt">TpData</span> <span class="kw">where</span>
     toJSON(<span class="dt">TpData</span>{<span class="fu">..</span>}) <span class="fu">=</span> 
         JSON.object [<span class="st">&quot;tpPoints&quot;</span> <span class="fu">.=</span> tpPoints]</code></pre></div>
-<p>the <code>defaultTpData</code> represents the default <code>TpData</code> we will use if no warp data is found on execution.</p>
+<p>The <code>TpData</code> class stores all the warp points together.</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">defaultTpData ::</span> <span class="dt">TpData</span>
 defaultTpData <span class="fu">=</span> <span class="dt">TpData</span> {
     tpPoints <span class="fu">=</span> []
 }</code></pre></div>
+the <code>defaultTpData</code> represents the default <code>TpData</code> we will use if no warp data is found on execution.
 <hr/>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
-
-<span class="co">-- flip function for ease of chaining computations</span>
-<span class="ot">(|&gt;) ::</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b
-(<span class="fu">|&gt;</span>) <span class="fu">=</span> flip (<span class="fu">$</span>)
-
-
-<span class="ot">filePathToString ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">filePathToString ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span>
 filePathToString <span class="fu">=</span> Path.encodeString
-
-
 
 <span class="co">-- Data Loading</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
-<span class="co">-- parse tpPoint</span>
-
-<span class="co">-- parse tpData</span>
-
-<span class="ot">dieJSONParseError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
-dieJSONParseError jsonFilePath err <span class="fu">=</span> 
-    (<span class="st">&quot;parse error in: &quot;</span> <span class="fu">++</span> (show jsonFilePath) <span class="fu">++</span>
-    <span class="st">&quot;\nerror:------\n&quot;</span> <span class="fu">++</span> err) <span class="fu">|&gt;</span>
-    T.pack <span class="fu">|&gt;</span>
-    Turtle.die
-
-<span class="ot">decodeTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
+<span class="ot">dieJSONParseError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+dieJSONParseError jsonFilePath err <span class="fu">=</span> <span class="kw">do</span>
+    <span class="kw">let</span> errorstr <span class="fu">=</span> (<span class="st">&quot;parse error in: &quot;</span> <span class="fu">++</span> (show jsonFilePath) <span class="fu">++</span>
+                    <span class="st">&quot;\nerror:------\n&quot;</span> <span class="fu">++</span> err)
+    Turtle.die (T.pack errorstr)</code></pre></div>
+<p>We write a quick function that errors out if the parse failed. To do this, we use <code>Turtle.die</code> that takes an error string and returns an <code>IO a</code> for failure.</p>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">decodeTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
 decodeTpData jsonFilePath <span class="fu">=</span> <span class="kw">do</span>
     rawInput <span class="ot">&lt;-</span> B.readFile (filePathToString jsonFilePath)
     <span class="kw">let</span> jsonResult <span class="fu">=</span> JSON.eitherDecode&#39; rawInput
 
     <span class="kw">case</span> jsonResult <span class="kw">of</span>
       <span class="dt">Left</span> err <span class="ot">-&gt;</span> dieJSONParseError jsonFilePath err
-      <span class="dt">Right</span> json <span class="ot">-&gt;</span> return json
-
-<span class="ot">createTpDataFile ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+      <span class="dt">Right</span> json <span class="ot">-&gt;</span> return json</code></pre></div>
+<p>We use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">JSON.eitherDecode&#39;<span class="ot"> ::</span>  <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">ByteString</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a</code></pre></div>
+<p>which takes a file path and returns an <code>Either String a</code> with the error in <code>Left</code></p>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">createTpDataFile ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 createTpDataFile jsonFilePath <span class="fu">=</span> saveTpData jsonFilePath defaultTpData
 
 <span class="ot">loadTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
@@ -458,9 +468,12 @@ loadTpData jsonFilePath <span class="fu">=</span> <span class="kw">do</span>
     <span class="kw">else</span>
        <span class="kw">do</span>
            createTpDataFile jsonFilePath
-           return defaultTpData
-
-<span class="ot">saveTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">TpData</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+           return defaultTpData</code></pre></div>
+<p>we try to load a file. If the file does not exist, we use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">defaultTpData ::</span> <span class="dt">TpData</span></code></pre></div>
+<p>we save this in the <code>createTpDataFile</code>, and then just retrn the default value. If we do get a value, then we return the parsed object.</p>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">saveTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">TpData</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 saveTpData jsonFilePath tpData <span class="fu">=</span> <span class="kw">do</span>
     <span class="kw">let</span> dataBytestring <span class="fu">=</span> JSON.encode tpData
     Turtle.touch jsonFilePath
@@ -470,8 +483,11 @@ saveTpData jsonFilePath tpData <span class="fu">=</span> <span class="kw">do</sp
 <span class="ot">getTpDataPath ::</span> <span class="dt">IO</span> FilePath
 getTpDataPath <span class="fu">=</span> <span class="kw">do</span>
     homeFolder <span class="ot">&lt;-</span> Turtle.home
-    return <span class="fu">$</span> homeFolder <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.tpdata&quot;</span>
-<span class="co">-- Stream Helpers</span>
+    return <span class="fu">$</span> homeFolder <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.tpdata&quot;</span></code></pre></div>
+<p>Note the use of <code>Turtle</code> for finding the home folder (<code>Turtle.home</code>) and to touch files (<code>Turtle.touch</code>). We concatenate <code>FilePath</code>s using</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&lt;/&gt;</span><span class="ot"> ::</span> FilePath <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> FilePath</code></pre></div>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Stream Helpers</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
 <span class="ot">setErrorColor ::</span> <span class="dt">IO</span> ()
@@ -480,29 +496,24 @@ setErrorColor <span class="fu">=</span> ANSI.setSGR [<span class="dt">ANSI.SetCo
 
 <span class="ot">tpPointPrint ::</span> <span class="dt">TpPoint</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 tpPointPrint tpPoint <span class="fu">=</span> <span class="kw">do</span>
-    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]
     putStr (name tpPoint)
     ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
     putStr <span class="st">&quot;\t&quot;</span>
     putStr (absFolderPath tpPoint)
     putStr <span class="st">&quot;\n&quot;</span>
 
-<span class="co">-- Add command runner</span>
-<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
-
 <span class="ot">folderNotFoundError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-folderNotFoundError path <span class="fu">=</span>
-    setErrorColor <span class="fu">&gt;&gt;</span> 
-    (<span class="st">&quot;unable to find folder: &quot;</span> <span class="fu">++</span> (show path)) <span class="fu">|&gt;</span>
-    T.pack <span class="fu">|&gt;</span>
-    Turtle.die
+folderNotFoundError path <span class="fu">=</span> <span class="kw">do</span>
+    setErrorColor  
+    <span class="kw">let</span> errorstr <span class="fu">=</span> T.pack (<span class="st">&quot;unable to find folder: &quot;</span> <span class="fu">++</span> (show path)) 
+    Turtle.die errorstr
 
 <span class="ot">needFolderNotFileError ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
-needFolderNotFileError path <span class="fu">=</span> 
-    setErrorColor <span class="fu">&gt;&gt;</span>
-    (<span class="st">&quot;expected folder, not file: &quot;</span> <span class="fu">++</span> (show path)) <span class="fu">|&gt;</span>
-    T.pack <span class="fu">|&gt;</span>
-    Turtle.die
+needFolderNotFileError path <span class="fu">=</span> <span class="kw">do</span>
+    setErrorColor
+    <span class="kw">let</span> errorstr <span class="fu">=</span> T.pack (<span class="st">&quot;expected folder, not file: &quot;</span> <span class="fu">++</span> (show path)) 
+    Turtle.die errorstr
 
 <span class="ot">dieIfFolderNotFound ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 dieIfFolderNotFound path <span class="fu">=</span> 
@@ -519,7 +530,27 @@ dieTpPointExists tpPoint  <span class="fu">=</span>  <span class="kw">do</span>
     setErrorColor
     putStrLn (<span class="st">&quot;teleport point &quot;</span> <span class="fu">++</span> (name tpPoint) <span class="fu">++</span> <span class="st">&quot; already exists:\n&quot;</span>)
     tpPointPrint tpPoint
-    Turtle.die <span class="st">&quot;&quot;</span>
+    Turtle.die <span class="st">&quot;&quot;</span></code></pre></div>
+<p>We write functions to error out nicely with colors, since everybody likes colors <code>:)</code></p>
+<p>Again, we use turtle for</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">Turtle.testdir<span class="ot"> ::</span> <span class="dt">MonadIO</span> io <span class="ot">=&gt;</span> FilePath <span class="ot">-&gt;</span> io <span class="dt">Bool</span>
+Turtle.testfile<span class="ot"> ::</span> <span class="dt">MonadIO</span> io <span class="ot">=&gt;</span> FilePath <span class="ot">-&gt;</span> io <span class="dt">Bool</span></code></pre></div>
+<p>to check if the file and folder we care about exists.</p>
+We also use the <code>ANSI</code> library for coloring the output.
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">setSGR ::</span> [<span class="dt">SGR</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre></div>
+</h5>
+<p>It takes an array of <code>SGR</code> (Select Graphic Rendition) objects, and applies them.</p>
+<p>The ones we use in <code>Teleport</code></p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">SetColor</span><span class="ot"> ::</span> <span class="dt">ConsoleLayer</span> <span class="dt">ColorIntensity</span> <span class="dt">Color</span> <span class="ot">-&gt;</span> <span class="dt">SGR</span>
+
+<span class="dt">ConsoleLayer</span> <span class="fu">=</span> <span class="dt">Foreground</span> <span class="fu">|</span> <span class="dt">Background</span>
+<span class="dt">ColorIntensity</span> <span class="fu">=</span> <span class="dt">Dull</span> <span class="fu">|</span> <span class="dt">Vivid</span>
+<span class="dt">Color</span> <span class="fu">=</span> <span class="dt">Black</span> <span class="fu">|</span> <span class="dt">Red</span> <span class="fu">|</span> <span class="dt">Green</span> <span class="fu">|</span> <span class="dt">Yellow</span> <span class="fu">|</span> <span class="dt">Blue</span> <span class="fu">|</span> <span class="dt">Magenta</span> <span class="fu">|</span> <span class="dt">Cyan</span> <span class="fu">|</span> <span class="dt">White</span></code></pre></div>
+to add colors to our output
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Add command runner</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
 <span class="ot">runAdd ::</span> <span class="dt">AddOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 runAdd <span class="dt">AddOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
@@ -527,7 +558,7 @@ runAdd <span class="dt">AddOptions</span>{<span class="fu">..</span>} <span clas
     tpDataPath <span class="ot">&lt;-</span> getTpDataPath
     tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
     absFolderPath <span class="ot">&lt;-</span> Turtle.realpath folderPath
-    
+
     <span class="kw">let</span> existingTpPoint <span class="fu">=</span> find (\tp <span class="ot">-&gt;</span> name tp <span class="fu">==</span> addname) (tpPoints tpData)
     <span class="kw">case</span> existingTpPoint <span class="kw">of</span>
         <span class="dt">Just</span> tpPoint <span class="ot">-&gt;</span> dieTpPointExists tpPoint
@@ -536,17 +567,25 @@ runAdd <span class="dt">AddOptions</span>{<span class="fu">..</span>} <span clas
                             name <span class="fu">=</span> addname,
                             absFolderPath <span class="fu">=</span> filePathToString absFolderPath
                         }
-                      
+
                         putStrLn <span class="st">&quot;creating teleport point: \n&quot;</span>
                         tpPointPrint newTpPoint
 
                         <span class="kw">let</span> newTpData <span class="fu">=</span> <span class="dt">TpData</span> {
                              tpPoints <span class="fu">=</span>  newTpPoint<span class="fu">:</span>(tpPoints tpData)   
                         }
-                        
 
-                        saveTpData tpDataPath newTpData
-    
+
+                        saveTpData tpDataPath newTpData</code></pre></div>
+<p>We check if a similar teleport point exists. If it does, we quit using <code>dieIfPointExists</code>.</p>
+<p>If not, we</p>
+<ul>
+<li>create a new teleport point <code>newTpPoint</code></li>
+<li>add it to the list in <code>newTpData</code></li>
+<li>save the new data with <code>saveTpData</code>.</li>
+</ul>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">    
 <span class="co">-- List Command</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
@@ -558,20 +597,29 @@ runList <span class="fu">=</span> <span class="kw">do</span>
     <span class="kw">let</span> num_points <span class="fu">=</span> length <span class="fu">$</span> tpPoints tpData
     putStr <span class="st">&quot;teleport points: &quot;</span>
 
-    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
+    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>] 
     putStr <span class="fu">$</span> <span class="st">&quot;(total &quot;</span> <span class="fu">&lt;&gt;</span> (show num_points) <span class="fu">&lt;&gt;</span>  <span class="st">&quot;)\n&quot;</span>
-    forM_ (tpPoints tpData) tpPointPrint
-    
-
+    forM_ (tpPoints tpData) tpPointPrint</code></pre></div>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">forM_ ::</span> (<span class="dt">Monad</span> m, <span class="dt">Foldable</span> t) <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m ()</code></pre></div>
+</h5>
+<p>the <code>Foldable</code> constraint means that the type <code>t</code> allows us to run “side-effectful” (Monadic <code>m</code>) code over the object. <code>[]</code> is <code>Foldable</code>, so we use <code>forM_</code> to print all values</p>
+<p>We use <code>forM_</code> to:</p>
+<ul>
+<li>loop over the list,</li>
+<li>with monadic effect (IO), hence <code>M</code>,</li>
+<li>ignore the return result (we don’t care about the return value), hence <code>_</code></li>
+</ul>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">
 <span class="co">-- Remove Command</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
 <span class="ot">dieTpPointNotFound ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span><span class="dt">IO</span> ()
-dieTpPointNotFound name <span class="fu">=</span> 
-    setErrorColor <span class="fu">&gt;&gt;</span>
-    (name <span class="fu">++</span> <span class="st">&quot; tp point not found&quot;</span>) <span class="fu">|&gt;</span>
-    T.pack <span class="fu">|&gt;</span>
-    Turtle.die
+dieTpPointNotFound name <span class="fu">=</span> <span class="kw">do</span>
+    setErrorColor
+    <span class="kw">let</span> errorname <span class="fu">=</span> T.pack (name <span class="fu">++</span> <span class="st">&quot; tp point not found&quot;</span>)
+    Turtle.die errorname
 
 <span class="ot">runRemove ::</span> <span class="dt">RemoveOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 runRemove <span class="dt">RemoveOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
@@ -594,22 +642,39 @@ runRemove <span class="dt">RemoveOptions</span>{<span class="fu">..</span>} <spa
                     ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
                     putStr removename
                     ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
-                    putStr <span class="st">&quot;]&quot;</span>
-                    
-
-<span class="ot">runGoto ::</span> <span class="dt">GotoOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+                    putStr <span class="st">&quot;]&quot;</span></code></pre></div>
+if there is no teleport point with the given name, we fail. If such a teleport point exists, we remove the point by filtering it out and then save the JSON file
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">runGoto ::</span> <span class="dt">GotoOptions</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 runGoto <span class="dt">GotoOptions</span>{<span class="fu">..</span>} <span class="fu">=</span> <span class="kw">do</span>
     tpDataPath <span class="ot">&lt;-</span> getTpDataPath
     tpData <span class="ot">&lt;-</span> loadTpData tpDataPath
-    
+
     <span class="kw">let</span> wantedTpPoint <span class="fu">=</span> find (\tp <span class="ot">-&gt;</span> name tp <span class="fu">==</span> gotoname) (tpPoints tpData)
     <span class="kw">case</span> wantedTpPoint <span class="kw">of</span>
         <span class="dt">Nothing</span> <span class="ot">-&gt;</span> dieTpPointNotFound gotoname
         <span class="dt">Just</span> tpPoint <span class="ot">-&gt;</span> <span class="kw">do</span>
                              Turtle.echo (T.pack (absFolderPath tpPoint))
-                             Turtle.exit (<span class="dt">Turtle.ExitFailure</span> <span class="dv">2</span>) 
-      
-<span class="ot">run ::</span> <span class="dt">Command</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+                             Turtle.exit (<span class="dt">Turtle.ExitFailure</span> <span class="dv">2</span>) </code></pre></div>
+Since a process is not allowed to change another process’ working directory, <code>tp goto</code> cannot change the shell’s working directory. So, we use a simple shell script (<code>teleport.sh</code>)
+<h5 class="codeheader">
+<code>teleport.sh</code>
+</h5>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"> <span class="co">#!/bin/bash</span>
+ <span class="co"># teleport.sh</span>
+<span class="kw">function</span><span class="fu"> tp()</span> <span class="kw">{</span>
+    <span class="ot">OUTPUT=</span><span class="kw">`teleport-exe</span> <span class="ot">$@</span><span class="kw">`</span>
+    <span class="co"># return code 2 is used to indicate that the shell script</span>
+    <span class="co"># should use the output to warp to</span>
+    <span class="kw">if [</span> <span class="ot">$?</span> <span class="ot">-eq</span> 2<span class="kw"> ]</span>
+        <span class="kw">then</span> <span class="kw">cd</span> <span class="st">&quot;</span><span class="ot">$OUTPUT</span><span class="st">&quot;</span>
+        <span class="kw">else</span> <span class="kw">echo</span> <span class="st">&quot;</span><span class="ot">$OUTPUT</span><span class="st">&quot;</span>
+    <span class="kw">fi</span>
+<span class="kw">}</span></code></pre></div>
+<p>when <code>tp goto</code> succeeds, we print out the path to the output stream in Haskell and returns a return code of <code>2</code>. The shell script sees that the return code is <code>2</code>, so it runs a <code>cd</code> to the correct path</p>
+If <code>tp</code> returns any code other than <code>2</code>, the shell script echoes all the output to the screen.
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">run ::</span> <span class="dt">Command</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 run command <span class="fu">=</span> 
     <span class="kw">case</span> command <span class="kw">of</span>
         <span class="dt">CommandAdd</span> addOpt <span class="ot">-&gt;</span> runAdd addOpt
@@ -617,5 +682,6 @@ run command <span class="fu">=</span>
         <span class="dt">CommandRemove</span> removeOpt <span class="ot">-&gt;</span> runRemove removeOpt
         <span class="dt">CommandGoto</span> gotoOpt <span class="ot">-&gt;</span> runGoto gotoOpt
         other <span class="fu">@</span> _ <span class="ot">-&gt;</span> print other</code></pre></div>
+<p>We simply pattern match on the command and then call the correct <code>run*</code> function</p>
 </body>
 </html>

@@ -496,10 +496,12 @@ Here, we look at how to build a more complex argument parser from the simple `st
 We compose `str :: ReadM String` with `readFolderPath ::  String -> ReadM FilePath` using their
 `Monad instance`
 
+<h5 class="codeheader">
 ```haskell
 readFolderPath :: String -> ReadM FilePath
 ```
-There is some fluff with converting from `String` to `Text`, but the main part of the code
+</h5>
+There is some fluff with converting from `String` to `Text` using `T.pack`. The main part of the code
 is in using
 ```haskell
 readerError String -> ReadM FilePath
@@ -539,12 +541,12 @@ data TpPoint = TpPoint {
 
 
 instance JSON.FromJSON TpPoint where
-     parseJSON (JSON.Object v) =
-        TpPoint <$> v .: "name"
-                  <*> v .: "absFolderPath"
+     parseJSON (JSON.Object json) =
+        liftA2 TpPoint (json .: "name")
+                  (json .: "absFolderPath")
 
 instance JSON.ToJSON TpPoint where
-    toJSON (TpPoint {..}) = 
+    toJSON (TpPoint {..}) =
         JSON.object [ "name" .= name
                      ,"absFolderPath" .= absFolderPath]
 \end{code}
@@ -553,19 +555,51 @@ This is our program representation. The `TpPoint` class stores the
 information of a warp point.
 
 
-We will implement the `FromJSON` and `ToJSON` typeclasses for both
+We implement the `FromJSON` and `ToJSON` typeclasses for both
 to allow us to save these as JSON files
+
+<h5 class="codeheader"> `FromJSON` </h5>
+We are given an `(Object json) :: Value`, and we need to produce a `Parser`
+
+```haskell
+(.:) :: FromJSON a => Object -> Text -> Parser a
+```
+We use `(.:)`, which when given a JSON `Object` and the name of a key, gives us a `Parser a`.
+This is used to extract the `name` and the `absFolderPath` from the JSON object.
+
+The constructor for `TpPoint`  is lifed into the `Parser` using `liftA2`
+ 
+<h5 class="codeheader"> `ToJSON` </h5>
+We need to implement
+```haskell
+toJSON :: a -> Value
+```
+
+To create a `Value`, we use
+```haskell
+JSON.object = object :: [Pair] -> Value
+```
+
+that lets us give it an array of `Pair` objects and it creates a Value.
+We make `Pair` objects using
+
+
+```haskell
+(.=) :: ToJSON v => Text -> v -> (kv ~ Pair)
+```
+the `.=` creates any `KeyValue`. We use it to create a `Pair` from our a tag name
+and a value (which has a `ToJSON` instance)
 
 <hr/>
 \begin{code}
--- the main data that is loaded from JSON 
+-- the main data that is loaded from JSON
 data TpData = TpData {
     tpPoints :: [TpPoint]
 } deriving (Show)
 
 instance JSON.FromJSON TpData where
     parseJSON (JSON.Object v) =
-        TpData <$> v .: "tpPoints"
+        fmap TpData (v .: "tpPoints")
 
 instance JSON.ToJSON TpData where
     toJSON(TpData{..}) = 
@@ -580,36 +614,29 @@ defaultTpData :: TpData
 defaultTpData = TpData {
     tpPoints = []
 }
-
 \end{code}
 
 the `defaultTpData` represents the default `TpData` we will use if no
 warp data is found on execution.
-
-
 <hr/>
 \begin{code}
-
-
-
 filePathToString :: FilePath -> String
 filePathToString = Path.encodeString
-
-
 
 -- Data Loading
 -- """"""""""""
 
--- parse tpPoint
-
--- parse tpData
-
-dieJSONParseError :: FilePath -> String -> IO TpData
+dieJSONParseError :: FilePath -> String -> IO a
 dieJSONParseError jsonFilePath err = do
     let errorstr = ("parse error in: " ++ (show jsonFilePath) ++
                     "\nerror:------\n" ++ err)
     Turtle.die (T.pack errorstr)
+\end{code}
+We write a quick function that errors out if the parse failed. To do this,
+we use `Turtle.die` that takes an error string and returns an `IO a` for failure.
 
+<hr/>
+\begin{code}
 decodeTpData :: FilePath -> IO TpData
 decodeTpData jsonFilePath = do
     rawInput <- B.readFile (filePathToString jsonFilePath)
@@ -618,7 +645,19 @@ decodeTpData jsonFilePath = do
     case jsonResult of
       Left err -> dieJSONParseError jsonFilePath err
       Right json -> return json
+\end{code}
 
+We use
+
+```haskell
+JSON.eitherDecode' ::  FromJSON a => ByteString -> Either String a
+```
+
+which takes a file path and returns an `Either String a` with the error
+in `Left`
+
+<hr/>
+\begin{code}
 createTpDataFile :: FilePath -> IO ()
 createTpDataFile jsonFilePath = saveTpData jsonFilePath defaultTpData
 
@@ -631,7 +670,17 @@ loadTpData jsonFilePath = do
        do
            createTpDataFile jsonFilePath
            return defaultTpData
+\end{code}
 
+we try to load a file. If the file does not exist, we use
+```haskell
+defaultTpData :: TpData
+```
+we save this in the `createTpDataFile`, and then just retrn the default value.
+If we do get a value, then we return the parsed object.
+
+<hr/>
+\begin{code}
 saveTpData :: FilePath -> TpData -> IO ()
 saveTpData jsonFilePath tpData = do
     let dataBytestring = JSON.encode tpData
@@ -643,6 +692,17 @@ getTpDataPath :: IO FilePath
 getTpDataPath = do
     homeFolder <- Turtle.home
     return $ homeFolder </> ".tpdata"
+\end{code}
+
+Note the use of `Turtle` for finding the home folder (`Turtle.home`) and
+to touch files (`Turtle.touch`). We concatenate `FilePath`s using
+
+```haskell
+</> :: FilePath -> FilePath -> FilePath
+``` 
+
+<hr/>
+\begin{code}
 -- Stream Helpers
 -- """"""""""""""
 
@@ -652,15 +712,12 @@ setErrorColor = ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
 
 tpPointPrint :: TpPoint -> IO ()
 tpPointPrint tpPoint = do
-    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]
     putStr (name tpPoint)
     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
     putStr "\t"
     putStr (absFolderPath tpPoint)
     putStr "\n"
-
--- Add command runner
--- """"""""""""""""""
 
 folderNotFoundError :: FilePath -> IO ()
 folderNotFoundError path = do
@@ -690,6 +747,39 @@ dieTpPointExists tpPoint  =  do
     putStrLn ("teleport point " ++ (name tpPoint) ++ " already exists:\n")
     tpPointPrint tpPoint
     Turtle.die ""
+\end{code}
+
+We write functions to error out nicely with colors, since everybody likes colors `:)`
+
+Again, we use turtle for
+```haskell
+Turtle.testdir :: MonadIO io => FilePath -> io Bool
+Turtle.testfile :: MonadIO io => FilePath -> io Bool
+```
+to check if the file and folder we care about exists.
+
+We also use the `ANSI` library for coloring the output.
+<h5 class="codeheader">
+```haskell
+setSGR :: [SGR] -> IO ()
+```
+</h5>
+
+It takes an array of `SGR` (Select Graphic Rendition) objects, and applies them.
+
+The ones we use in `Teleport`
+```haskell
+SetColor :: ConsoleLayer ColorIntensity Color -> SGR
+
+ConsoleLayer = Foreground | Background
+ColorIntensity = Dull | Vivid
+Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
+```
+to add colors to our output
+<hr/>
+\begin{code}
+-- Add command runner
+-- """"""""""""""""""
 
 runAdd :: AddOptions -> IO ()
 runAdd AddOptions{..} = do
@@ -697,7 +787,7 @@ runAdd AddOptions{..} = do
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
     absFolderPath <- Turtle.realpath folderPath
-    
+
     let existingTpPoint = find (\tp -> name tp == addname) (tpPoints tpData)
     case existingTpPoint of
         Just tpPoint -> dieTpPointExists tpPoint
@@ -706,16 +796,29 @@ runAdd AddOptions{..} = do
                             name = addname,
                             absFolderPath = filePathToString absFolderPath
                         }
-                      
+
                         putStrLn "creating teleport point: \n"
                         tpPointPrint newTpPoint
 
                         let newTpData = TpData {
                              tpPoints =  newTpPoint:(tpPoints tpData)   
                         }
-                        
+
 
                         saveTpData tpDataPath newTpData
+\end{code}
+
+We check if a similar teleport point exists. If it does, we quit using
+`dieIfPointExists`.
+
+If not, we
+
+* create a new teleport point `newTpPoint`
+* add it to the list in `newTpData`
+* save the new data with `saveTpData`.
+
+<hr/>
+\begin{code}
     
 -- List Command
 -- """"""""""""
@@ -732,6 +835,24 @@ runList = do
     putStr $ "(total " <> (show num_points) <>  ")\n"
     forM_ (tpPoints tpData) tpPointPrint
 
+\end{code}
+<h5 class="codeheader">
+```haskell
+forM_ :: (Monad m, Foldable t) => t a -> (a -> m b) -> m ()
+```
+</h5>
+the `Foldable` constraint means that the type `t` allows us
+to run "side-effectful" (Monadic `m`) code over the object.
+`[]` is `Foldable`, so we use `forM_` to print all values
+
+We use `forM_` to:
+
+* loop over the list,
+* with monadic effect (IO), hence `M`,
+* ignore the return result (we don't care about the return value), hence `_`
+
+<hr/>
+\begin{code}
 
 -- Remove Command
 -- """""""""""""""
@@ -764,20 +885,52 @@ runRemove RemoveOptions{..} = do
                     putStr removename
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
                     putStr "]"
-                    
+\end{code}
 
+if there is no teleport point with the given name, we fail.
+If such a teleport point exists, we remove the point by filtering it out
+and then save the JSON file
+<hr/>
+\begin{code}
 runGoto :: GotoOptions -> IO ()
 runGoto GotoOptions{..} = do
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
-    
+
     let wantedTpPoint = find (\tp -> name tp == gotoname) (tpPoints tpData)
     case wantedTpPoint of
         Nothing -> dieTpPointNotFound gotoname
         Just tpPoint -> do
                              Turtle.echo (T.pack (absFolderPath tpPoint))
                              Turtle.exit (Turtle.ExitFailure 2) 
-      
+
+\end{code}
+
+Since a process is not allowed to change another process' working directory, `tp goto` cannot
+change the shell's working directory. So, we use a simple shell script (`teleport.sh`)
+<h5 class="codeheader">
+`teleport.sh`
+</h5>
+```bash
+ #!/bin/bash
+ # teleport.sh
+function tp() {
+    OUTPUT=`teleport-exe $@`
+    # return code 2 is used to indicate that the shell script
+    # should use the output to warp to
+    if [ $? -eq 2 ]
+        then cd "$OUTPUT"
+        else echo "$OUTPUT"
+    fi
+}
+```
+when `tp goto` succeeds, we print out the path to the output stream in Haskell
+and returns a return code of `2`. The shell script sees that the return code is `2`, so
+it runs a `cd` to the correct path
+
+If `tp` returns any code other than `2`, the shell script echoes all the output to the screen.
+<hr/>
+\begin{code}
 run :: Command -> IO ()
 run command = 
     case command of
@@ -787,3 +940,4 @@ run command =
         CommandGoto gotoOpt -> runGoto gotoOpt
         other @ _ -> print other
 \end{code}
+We simply pattern match on the command and then call the correct `run*` function
