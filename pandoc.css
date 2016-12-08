@@ -113,11 +113,10 @@ blockquote {
 
 hr {
   display: block;
-  height: 2px;
+  height: 4px;
   border: 0;
-  border-top: 1px solid #aaa;
-  border-bottom: 1px solid #eee;
-  margin: 1em 0;
+  background-color: #BCBCBC;
+  margin: 0.1em 0;
   padding: 0;
 }
 
@@ -325,4 +324,9 @@ table td {
   h2, h3 {
     page-break-after: avoid;
   }
+}
+codeheader {
+    border-top: 3px solid #EFEFEF;
+    padding-top: 0.1em;
+
 }

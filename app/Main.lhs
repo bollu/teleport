@@ -1,4 +1,5 @@
 
+
 <h1> Teleport - A haskell tutorial on Turtle, JSON and having fun</h1>
 
 
@@ -66,6 +67,7 @@ Let's start reading the code, and learn about the libraries as we go along
 First thing's first, let us get the MIT license out of the way.
 
 
+<hr/>
 \begin{code}
 --Copyright (c) 2015 Siddharth Bhat
 
@@ -91,6 +93,7 @@ First thing's first, let us get the MIT license out of the way.
 Haskell Extensions
 ------------------
 
+<hr/>
 \begin{code}
 #!/usr/bin/env stack
 \end{code}
@@ -101,12 +104,14 @@ a handy extension to have around.
 
 `RecordWildCards` is more interesting, and I'll describe it in more detail when we
 get to it
+<hr/>
 \begin{code}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 \end{code}
 
 
+<hr/>
 \begin{code}
 import qualified Turtle
 import Prelude hiding (FilePath)
@@ -119,6 +124,7 @@ a nice set of abstractions for dealing with OS specific stuff.
 We choose to hide `FilePath` since `turtle` (the library for interfacing
 with the OS) has its own version of `FilePath`.
 
+<hr/>
 \begin{code}
 import qualified Data.Aeson as JSON
 import Data.Aeson ((.=), (.:))
@@ -128,6 +134,7 @@ We use `Aeson` for reading and writing JSON files. We use JSON to store
 our settings
 
 
+<hr/>
 \begin{code}
 import Options.Applicative
 import Control.Monad
@@ -139,6 +146,7 @@ These are our default imports of standard library stuff.
 
 
 
+<hr/>
 \begin{code}
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T.Encoding
@@ -154,12 +162,14 @@ Text is used internally everywhere in the application to manipulate text.
 
 We need `ByteString` to read and write JSON files onto the filesystem. 
 
+<hr/>
 \begin{code}
 import qualified System.Console.ANSI as ANSI
 \end{code}
 
 the `ANSI` library is used for coloring our outputs.
 
+<hr/>
 \begin{code}
 tpProgDesc :: String
 tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
@@ -172,6 +182,7 @@ tpHeader = "Teleport: move around your filesystem"
 Strings that are used in our library for descriptions. I prefer to keep these
 as constants rather than hard-code them.
 
+<hr/>
 \begin{code}
 -- the combined datatype representing all tp commands
 data Command = CommandList |
@@ -192,6 +203,7 @@ we create options datatypes to store the options.
 
 our parser will return a `Command` that tells us what to do.
 
+<hr/>
 \begin{code}
 -- options pased to 'tp add'
 data AddOptions = AddOptions {
@@ -203,6 +215,7 @@ data AddOptions = AddOptions {
 `tp add` needs the name of the warp point to add, and the path of the folder
 where it should get added to.
 
+<hr/>
 \begin{code}
 -- options passed to 'tp remove'
 data RemoveOptions = RemoveOptions {
@@ -216,6 +229,7 @@ data GotoOptions = GotoOptions {
 \end{code}
 
 
+<hr/>
 \begin{code}
 -- | A version of 'execParser' which shows full help on error.                
 --                                                                            
@@ -260,7 +274,10 @@ info :: Parser a -> InfoMod a -> ParserInfo a
 display information to the parser
 
 
-<h4> `fullDesc`, progDesc`, `header` </h4>
+<h4>
+`fullDesc`,`progDesc`,`header`
+</h4>
+
 ```haskell
 fullDesc :: InfoMod a
 progDesc :: String -> InfoMod a
@@ -278,6 +295,7 @@ can think of `<>` as `++` for lists: it lets us collect two lists into one.
 As explained above, it takes a parser and allows it to show help information
 when the parse fails. It executed the parser passed to it (`parseCommand`)
 
+<hr/>
 \begin{code}
 parseCommand :: Parser Command
 parseCommand = subparser
@@ -309,6 +327,7 @@ The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
 `main` to attach information and help to the parser.
 
 
+<hr/>
 \begin{code}
 -- Command parsers
 -- """""""""""""""
@@ -333,6 +352,7 @@ parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
 
 \end{code}
 
+<hr/>
 \begin{code}
 -- Common parsers
 -- """"""""""""""
@@ -361,6 +381,7 @@ information of a warp point.
 We will implement the `FromJSON` and `ToJSON` typeclasses for both
 to allow us to save these as JSON files
 
+<hr/>
 \begin{code}
 -- an abstract entity representing a point to which we can tp to
 data TpPoint = TpPoint {
@@ -382,6 +403,7 @@ instance JSON.ToJSON TpPoint where
 
 The `TpData` class stores all the warp points together.
 
+<hr/>
 \begin{code}
 -- the main data that is loaded from JSON 
 data TpData = TpData {
@@ -400,6 +422,7 @@ instance JSON.ToJSON TpData where
 the `defaultTpData` represents the default `TpData` we will use if no
 warp data is found on execution.
 
+<hr/>
 \begin{code}
 defaultTpData :: TpData
 defaultTpData = TpData {
@@ -409,6 +432,7 @@ defaultTpData = TpData {
 \end{code}
 
 
+<hr/>
 \begin{code}
 
 
