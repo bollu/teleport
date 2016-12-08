@@ -293,7 +293,11 @@ allows us to "smash together" two modifiers into one single modifier. One
 can think of `<>` as `++` for lists: it lets us collect two lists into one.
 
 
-<h4> `showHelpOnErrorExecParser` </h4> 
+<h5 class="codeheader">
+```haskell
+showHelpOnErrorExecParser
+```
+</h5>
 As explained above, it takes a parser and allows it to show help information
 when the parse fails. It executed the parser passed to it (`parseCommand`)
 
@@ -334,30 +338,143 @@ The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
 -- Command parsers
 -- """""""""""""""
 
-parseAddCommand :: Parser Command
-parseAddCommand =  
-    CommandAdd <$> (AddOptions <$>  tpnameParser <*> folderParser) where
-        folderParser = argument
-                     (str >>= readFolderPath)
-                     (value "./"  <>
-                      metavar "FOLDERPATH" <>
-                      help "path of the teleport folder to teleport to. By default, taken as current working directory")
-
+-- List
+-- ----
+-- $ tp list
 parseListCommand :: Parser Command
 parseListCommand = pure (CommandList)
-
-parseRemoveCommand :: Parser Command
-parseRemoveCommand = CommandRemove <$> (RemoveOptions <$> tpnameParser)
-
-parseGotoCommand :: Parser Command
-parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
-
 \end{code}
+
+
+the parser needs no options (the `list` command takes no options),
+so we use
+```haskell
+pure :: a -> f a
+```
+to convert
+```haskell
+CommandList :: Command
+```
+to
+```haskell
+pure CommandList :: Parser Command
+```
 
 <hr/>
 \begin{code}
--- Common parsers
+parseAddCommand :: Parser Command
+parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Parser Command
+                   CommandAdd -- :: AddOptions -> Command
+                   (liftA2 -- :: (String -> FilePath -> AddOptions) ->
+                           --       Parser String -> Parser FilePath -> Parser AddOptions
+                        AddOptions -- :: String -> FilePath -> AddOptions
+                        tpnameParser -- :: Parser String
+                        folderParser -- :: Parser FilePath
+                   )
+\end{code}
+
+we use
+```haskell
+liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions
+```
+
+and we pass it two parser `tpNameParser` and `folderParser` (which will be defined below)
+to create a `Parser AddOptions`.
+
+we then convert `Parser AddOptions` to `Parser Command` by using
+
+```haskell
+fmap CommandAdd :: Parser AddOptions -> Parser Command
+```
+
+<hr/>
+\begin{code}
+-- Warp Name parser
+-- """"""""""""""""
+tpnameParser :: Parser String
+tpnameParser = argument  -- :: ReadM String -> Mod ArgumentFields String -> Parser String
+                  str -- :: ReadM String
+                  (metavar "NAME" <>
+                  help "name of the teleport point for usage") -- Mod ArgumentFields
+\end{code}
+
+Till now, we were creating "command" parsers that parse things like
+```
+$ tp add
+```
+or
+```
+$ tp list
+```
+
+Now, we need to learn how to parser _options_. Options such as
+```
+$ tp add <warp point name> ...
+```
+to do this, the __general function that is used is called `argument`__.
+```haskell
+argument :: ReadM a -> -- in general, "can be read".
+            Mod ArgumentFields a -> -- modifiers to a parser
+            Parser a
+```
+Breaking this down as usual,
+
+<h5 class="codeheader">
+```haskell
+ReadM a
+```
+</h5>
+I won't explain `ReadM` here, it's mostly a way to "read something in". We will mostly start with
+the `ReadM` instance
+```haskell
+str :: ReadM String
+```
+and use the `Functor` and `Monad` instance on `str` create new `ReadM` instances. [For more on
+`ReadM`, click here](https://hackage.haskell.org/package/optparse-applicative-0.13.0.0/docs/Options-Applicative-Builder.html#t:ReadM)
+
+<h5 class="codeheader">
+```haskell
+Mod ArgumentFields a
+```
+</h5>
+
+This lets us "Modify" a `Parser` by providing it with modifiers. The modifiers have a `Monoid` instance, so
+we use `<>` (`mappend`)
+```haskell
+<> :: Monoid m -> m -> m -> m
+mappend :: Monoid m -> m -> m -> m
+mappend = <>
+```
+to "combine" two options together.
+
+<h5> full picture </h5>
+Now, reading through the code we have, we start with a `str :: ReadM String`, use the
+`metavar` option to give it a name, and the `help` option to give it a help string.
+
+```
+$ tp add --help
+Usage: teleport-exe add NAME ...
+ ...
+Available options:
+  ...
+  NAME                     name of the teleport point for usage
+  ...
+```
+the `NAME` comes from the `metavar` option, and the help string comes from the `help` option
+
+<hr/>
+\begin{code}
+-- Folder Parser
 -- """"""""""""""
+folderParser :: Parser FilePath
+folderParser = argument
+              (str -- :: Parser String
+                >>=
+               readFolderPath)
+              (value "./"  <>
+              metavar "FOLDERPATH" <>
+              help "path of the teleport folder to teleport to. By default, taken as current working directory")
+
 readFolderPath :: String -> ReadM FilePath
 readFolderPath s = T.pack s |>
                  Path.fromText |>
@@ -365,14 +482,19 @@ readFolderPath s = T.pack s |>
                      then return path
                      else readerError ("invalid path: " ++ (show path)))
 
+\end{code}
 
-tpnameParser :: Parser String
-tpnameParser = argument str
-                  (metavar "NAME" <>
-                  help "name of the teleport point for usage")
 
+<hr/>
+\begin{code}
+parseRemoveCommand :: Parser Command
+parseRemoveCommand = fmap (CommandRemove . RemoveOptions) tpnameParser
+
+parseGotoCommand :: Parser Command
+parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 
 \end{code}
+
 
 
 

@@ -229,9 +229,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
 </h5>
 <p>all of these allow us to attach <code>InfoMod</code> to a <code>Parser</code>, which changes the information that is printed with a <code>Parser</code>.</p>
 <p>They have a <code>Monoid</code> instance, and the <code>&lt;&gt;</code> is the <code>mappend</code> operator that allows us to &quot;smash together&quot; two modifiers into one single modifier. One can think of <code>&lt;&gt;</code> as <code>++</code> for lists: it lets us collect two lists into one.</p>
-<h4>
-<code>showHelpOnErrorExecParser</code>
-</h4>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">showHelpOnErrorExecParser</code></pre></div>
+</h5>
 <p>As explained above, it takes a parser and allows it to show help information when the parse fails. It executed the parser passed to it (<code>parseCommand</code>)</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
@@ -261,38 +261,101 @@ parseCommand <span class="fu">=</span> subparser
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Command parsers</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 
-<span class="ot">parseAddCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseAddCommand <span class="fu">=</span>  
-    <span class="dt">CommandAdd</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">AddOptions</span> <span class="fu">&lt;$&gt;</span>  tpnameParser <span class="fu">&lt;*&gt;</span> folderParser) <span class="kw">where</span>
-        folderParser <span class="fu">=</span> argument
-                     (str <span class="fu">&gt;&gt;=</span> readFolderPath)
-                     (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
-                      metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
-                      help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
-
+<span class="co">-- List</span>
+<span class="co">-- ----</span>
+<span class="co">-- $ tp list</span>
 <span class="ot">parseListCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseListCommand <span class="fu">=</span> pure (<span class="dt">CommandList</span>)
-
-<span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseRemoveCommand <span class="fu">=</span> <span class="dt">CommandRemove</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">RemoveOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)
-
-<span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">GotoOptions</span> <span class="fu">&lt;$&gt;</span> tpnameParser)</code></pre></div>
+parseListCommand <span class="fu">=</span> pure (<span class="dt">CommandList</span>)</code></pre></div>
+<p>the parser needs no options (the <code>list</code> command takes no options), so we use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">pure ::</span> a <span class="ot">-&gt;</span> f a</code></pre></div>
+<p>to convert</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">CommandList</span><span class="ot"> ::</span> <span class="dt">Command</span></code></pre></div>
+<p>to</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">pure <span class="dt">CommandList</span><span class="ot"> ::</span> <span class="dt">Parser</span> <span class="dt">Command</span></code></pre></div>
 <hr/>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Common parsers</span>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseAddCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseAddCommand <span class="fu">=</span> fmap <span class="co">-- :: (AddOptions -&gt; Command) -&gt; Parser AddOptions -&gt; Parser Command</span>
+                   <span class="dt">CommandAdd</span> <span class="co">-- :: AddOptions -&gt; Command</span>
+                   (liftA2 <span class="co">-- :: (String -&gt; FilePath -&gt; AddOptions) -&gt;</span>
+                           <span class="co">--       Parser String -&gt; Parser FilePath -&gt; Parser AddOptions</span>
+                        <span class="dt">AddOptions</span> <span class="co">-- :: String -&gt; FilePath -&gt; AddOptions</span>
+                        tpnameParser <span class="co">-- :: Parser String</span>
+                        folderParser <span class="co">-- :: Parser FilePath</span>
+                   )</code></pre></div>
+<p>we use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">liftA2 <span class="dt">AddOptions</span><span class="ot"> ::</span> <span class="dt">Parser</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">AddOptions</span></code></pre></div>
+<p>and we pass it two parser <code>tpNameParser</code> and <code>folderParser</code> (which will be defined below) to create a <code>Parser AddOptions</code>.</p>
+<p>we then convert <code>Parser AddOptions</code> to <code>Parser Command</code> by using</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fmap <span class="dt">CommandAdd</span><span class="ot"> ::</span> <span class="dt">Parser</span> <span class="dt">AddOptions</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Command</span></code></pre></div>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Warp Name parser</span>
+<span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+<span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM String -&gt; Mod ArgumentFields String -&gt; Parser String</span>
+                  str <span class="co">-- :: ReadM String</span>
+                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
+                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>) <span class="co">-- Mod ArgumentFields</span></code></pre></div>
+<p>Till now, we were creating &quot;command&quot; parsers that parse things like</p>
+<pre><code>$ tp add</code></pre>
+<p>or</p>
+<pre><code>$ tp list</code></pre>
+<p>Now, we need to learn how to parser <em>options</em>. Options such as</p>
+<pre><code>$ tp add &lt;warp point name&gt; ...</code></pre>
+<p>to do this, the <strong>general function that is used is called <code>argument</code></strong>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">argument ::</span> <span class="dt">ReadM</span> a <span class="ot">-&gt;</span> <span class="co">-- in general, &quot;can be read&quot;.</span>
+            <span class="dt">Mod</span> <span class="dt">ArgumentFields</span> a <span class="ot">-&gt;</span> <span class="co">-- modifiers to a parser</span>
+            <span class="dt">Parser</span> a</code></pre></div>
+<p>Breaking this down as usual,</p>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">ReadM</span> a</code></pre></div>
+</h5>
+<p>I won't explain <code>ReadM</code> here, it's mostly a way to &quot;read something in&quot;. We will mostly start with the <code>ReadM</code> instance</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">str ::</span> <span class="dt">ReadM</span> <span class="dt">String</span></code></pre></div>
+<p>and use the <code>Functor</code> and <code>Monad</code> instance on <code>str</code> create new <code>ReadM</code> instances. <a href="https://hackage.haskell.org/package/optparse-applicative-0.13.0.0/docs/Options-Applicative-Builder.html#t:ReadM">For more on <code>ReadM</code>, click here</a></p>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Mod</span> <span class="dt">ArgumentFields</span> a</code></pre></div>
+</h5>
+<p>This lets us &quot;Modify&quot; a <code>Parser</code> by providing it with modifiers. The modifiers have a <code>Monoid</code> instance, so we use <code>&lt;&gt;</code> (<code>mappend</code>)</p>
+<pre><code>&lt;&gt; :: Monoid m -&gt; m -&gt; m -&gt; m
+mappend :: Monoid m -&gt; m -&gt; m -&gt; m
+mappend = &lt;&gt;</code></pre>
+<p>to &quot;combine&quot; two options together.</p>
+<h5>
+full picture
+</h5>
+<p>Now, reading through the code we have, we start with a <code>str :: ReadM String</code>, use the <code>metavar</code> option to give it a name, and the <code>help</code> option to give it a help string.</p>
+<pre><code>$ tp add --help
+Usage: teleport-exe add NAME ...
+ ...
+Available options:
+  ...
+  NAME                     name of the teleport point for usage
+  ...</code></pre>
+<p>the <code>NAME</code> comes from the <code>metavar</code> option, and the help string comes from the <code>help</code> option</p>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Folder Parser</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
+<span class="ot">folderParser ::</span> <span class="dt">Parser</span> FilePath
+folderParser <span class="fu">=</span> argument
+              (str <span class="co">-- :: Parser String</span>
+                <span class="fu">&gt;&gt;=</span>
+               readFolderPath)
+              (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
+              metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
+              help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
+
 <span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
 readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span>
                  Path.fromText <span class="fu">|&gt;</span>
                  (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
                      <span class="kw">then</span> return path
-                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))
+                     <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))</code></pre></div>
+<hr/>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseRemoveCommand <span class="fu">=</span> fmap (<span class="dt">CommandRemove</span> <span class="fu">.</span> <span class="dt">RemoveOptions</span>) tpnameParser
 
-
-<span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
-tpnameParser <span class="fu">=</span> argument str
-                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
-                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>)</code></pre></div>
+<span class="ot">parseGotoCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
+parseGotoCommand <span class="fu">=</span> fmap (<span class="dt">CommandGoto</span> <span class="fu">.</span> <span class="dt">GotoOptions</span>) tpnameParser</code></pre></div>
 <p>This is our program representation. The <code>TpPoint</code> class stores the information of a warp point.</p>
 <p>We will implement the <code>FromJSON</code> and <code>ToJSON</code> typeclasses for both to allow us to save these as JSON files</p>
 <hr/>

@@ -330,3 +330,7 @@ table td {
     padding-top: 0.1em;
 
 }
+
+code {
+    overflow-x: scroll;
+}
