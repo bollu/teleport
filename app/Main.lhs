@@ -394,8 +394,10 @@ fmap CommandAdd :: Parser AddOptions -> Parser Command
 tpnameParser :: Parser String
 tpnameParser = argument  -- :: ReadM String -> Mod ArgumentFields String -> Parser String
                   str -- :: ReadM String
-                  (metavar "NAME" <>
-                  help "name of the teleport point for usage") -- Mod ArgumentFields
+                  (metavar -- :: String -> Mod ArgumentFields String
+                    "NAME" <>
+                  help -- :: String -> Mod ArgumentFields String
+                    "name of the teleport point for usage") -- Mod ArgumentFields String
 \end{code}
 
 Till now, we were creating "command" parsers that parse things like
@@ -438,7 +440,7 @@ Mod ArgumentFields a
 ```
 </h5>
 
-This lets us "Modify" a `Parser` by providing it with modifiers. The modifiers have a `Monoid` instance, so
+This lets us modify a `Parser` by providing it with modifiers. The modifiers have a `Monoid` instance, so
 we use `<>` (`mappend`)
 ```haskell
 <> :: Monoid m -> m -> m -> m
@@ -447,10 +449,16 @@ mappend = <>
 ```
 to "combine" two options together.
 
-<h5> full picture </h5>
+<h5 class="codeheader"> full picture </h5>
 Now, reading through the code we have, we start with a `str :: ReadM String`, use the
 `metavar` option to give it a name, and the `help` option to give it a help string.
 
+```
+metavar :: ReadM a => String -> Mod ArgumentFields String
+help ::  String -> Mod f a
+```
+
+<h6> use of `metavar` and `help` </h6>
 ```
 $ tp add --help
 Usage: teleport-exe add NAME ...
@@ -468,22 +476,44 @@ the `NAME` comes from the `metavar` option, and the help string comes from the `
 -- """"""""""""""
 folderParser :: Parser FilePath
 folderParser = argument
-              (str -- :: Parser String
+              (str -- :: ReadM String
                 >>=
-               readFolderPath)
+               readFolderPath) -- :: String -> ReadM FilePath
               (value "./"  <>
               metavar "FOLDERPATH" <>
               help "path of the teleport folder to teleport to. By default, taken as current working directory")
 
 readFolderPath :: String -> ReadM FilePath
-readFolderPath s = T.pack s |>
-                 Path.fromText |>
-                 (\path -> if Path.valid path
-                     then return path
-                     else readerError ("invalid path: " ++ (show path)))
+readFolderPath s = do
+  let path = Path.fromText (T.pack s)
+  if Path.valid path
+      then return path
+      else readerError ("invalid path: " ++ (show path))
 
 \end{code}
 
+Here, we look at how to build a more complex argument parser from the simple `str` argument.
+We compose `str :: ReadM String` with `readFolderPath ::  String -> ReadM FilePath` using their
+`Monad instance`
+
+```haskell
+readFolderPath :: String -> ReadM FilePath
+```
+There is some fluff with converting from `String` to `Text`, but the main part of the code
+is in using
+```haskell
+readerError String -> ReadM FilePath
+```
+to report an error when the path given is invalid.
+
+<h5 class="codeheader">
+```haskell
+value :: HasValue f a => a -> Mod f a
+```
+</h5>
+
+We use the `value` modifier to assign a default value to the option. We use "."
+which is the current folder as a default option
 
 <hr/>
 \begin{code}
@@ -495,15 +525,9 @@ parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 
 \end{code}
 
-
-
-
-This is our program representation. The `TpPoint` class stores the
-information of a warp point.
-
-
-We will implement the `FromJSON` and `ToJSON` typeclasses for both
-to allow us to save these as JSON files
+we reuse our `tpnameParser :: Parser String` to parse names. We convert them to
+`Command` by first converting them to the correct `{Remove, Goto}Options` type,
+and then using the `Command{Remove, Goto}` constructors
 
 <hr/>
 \begin{code}
@@ -525,7 +549,12 @@ instance JSON.ToJSON TpPoint where
                      ,"absFolderPath" .= absFolderPath]
 \end{code}
 
-The `TpData` class stores all the warp points together.
+This is our program representation. The `TpPoint` class stores the
+information of a warp point.
+
+
+We will implement the `FromJSON` and `ToJSON` typeclasses for both
+to allow us to save these as JSON files
 
 <hr/>
 \begin{code}
@@ -543,8 +572,7 @@ instance JSON.ToJSON TpData where
         JSON.object ["tpPoints" .= tpPoints]
 \end{code}
 
-the `defaultTpData` represents the default `TpData` we will use if no
-warp data is found on execution.
+The `TpData` class stores all the warp points together.
 
 <hr/>
 \begin{code}
@@ -555,14 +583,13 @@ defaultTpData = TpData {
 
 \end{code}
 
+the `defaultTpData` represents the default `TpData` we will use if no
+warp data is found on execution.
+
 
 <hr/>
 \begin{code}
 
-
--- flip function for ease of chaining computations
-(|>) :: a -> (a -> b) -> b
-(|>) = flip ($)
 
 
 filePathToString :: FilePath -> String
@@ -578,11 +605,10 @@ filePathToString = Path.encodeString
 -- parse tpData
 
 dieJSONParseError :: FilePath -> String -> IO TpData
-dieJSONParseError jsonFilePath err = 
-    ("parse error in: " ++ (show jsonFilePath) ++
-    "\nerror:------\n" ++ err) |>
-    T.pack |>
-    Turtle.die
+dieJSONParseError jsonFilePath err = do
+    let errorstr = ("parse error in: " ++ (show jsonFilePath) ++
+                    "\nerror:------\n" ++ err)
+    Turtle.die (T.pack errorstr)
 
 decodeTpData :: FilePath -> IO TpData
 decodeTpData jsonFilePath = do
@@ -637,18 +663,16 @@ tpPointPrint tpPoint = do
 -- """"""""""""""""""
 
 folderNotFoundError :: FilePath -> IO ()
-folderNotFoundError path =
-    setErrorColor >> 
-    ("unable to find folder: " ++ (show path)) |>
-    T.pack |>
-    Turtle.die
+folderNotFoundError path = do
+    setErrorColor  
+    let errorstr = T.pack ("unable to find folder: " ++ (show path)) 
+    Turtle.die errorstr
 
 needFolderNotFileError :: FilePath -> IO ()
-needFolderNotFileError path = 
-    setErrorColor >>
-    ("expected folder, not file: " ++ (show path)) |>
-    T.pack |>
-    Turtle.die
+needFolderNotFileError path = do
+    setErrorColor
+    let errorstr = T.pack ("expected folder, not file: " ++ (show path)) 
+    Turtle.die errorstr
 
 dieIfFolderNotFound :: FilePath -> IO ()
 dieIfFolderNotFound path = 
@@ -704,20 +728,19 @@ runList = do
     let num_points = length $ tpPoints tpData
     putStr "teleport points: "
 
-    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
+    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue] 
     putStr $ "(total " <> (show num_points) <>  ")\n"
     forM_ (tpPoints tpData) tpPointPrint
-    
+
 
 -- Remove Command
 -- """""""""""""""
 
 dieTpPointNotFound :: String ->IO ()
-dieTpPointNotFound name = 
-    setErrorColor >>
-    (name ++ " tp point not found") |>
-    T.pack |>
-    Turtle.die
+dieTpPointNotFound name = do
+    setErrorColor
+    let errorname = T.pack (name ++ " tp point not found")
+    Turtle.die errorname
 
 runRemove :: RemoveOptions -> IO ()
 runRemove RemoveOptions{..} = do

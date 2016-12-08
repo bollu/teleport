@@ -293,8 +293,10 @@ parseAddCommand <span class="fu">=</span> fmap <span class="co">-- :: (AddOption
 <span class="ot">tpnameParser ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
 tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM String -&gt; Mod ArgumentFields String -&gt; Parser String</span>
                   str <span class="co">-- :: ReadM String</span>
-                  (metavar <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
-                  help <span class="st">&quot;name of the teleport point for usage&quot;</span>) <span class="co">-- Mod ArgumentFields</span></code></pre></div>
+                  (metavar <span class="co">-- :: String -&gt; Mod ArgumentFields String</span>
+                    <span class="st">&quot;NAME&quot;</span> <span class="fu">&lt;&gt;</span>
+                  help <span class="co">-- :: String -&gt; Mod ArgumentFields String</span>
+                    <span class="st">&quot;name of the teleport point for usage&quot;</span>) <span class="co">-- Mod ArgumentFields String</span></code></pre></div>
 <p>Till now, we were creating &quot;command&quot; parsers that parse things like</p>
 <pre><code>$ tp add</code></pre>
 <p>or</p>
@@ -315,15 +317,20 @@ tpnameParser <span class="fu">=</span> argument  <span class="co">-- :: ReadM St
 <h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Mod</span> <span class="dt">ArgumentFields</span> a</code></pre></div>
 </h5>
-<p>This lets us &quot;Modify&quot; a <code>Parser</code> by providing it with modifiers. The modifiers have a <code>Monoid</code> instance, so we use <code>&lt;&gt;</code> (<code>mappend</code>)</p>
-<pre><code>&lt;&gt; :: Monoid m -&gt; m -&gt; m -&gt; m
-mappend :: Monoid m -&gt; m -&gt; m -&gt; m
-mappend = &lt;&gt;</code></pre>
+<p>This lets us modify a <code>Parser</code> by providing it with modifiers. The modifiers have a <code>Monoid</code> instance, so we use <code>&lt;&gt;</code> (<code>mappend</code>)</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&lt;&gt;</span><span class="ot"> ::</span> <span class="dt">Monoid</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m
+<span class="ot">mappend ::</span> <span class="dt">Monoid</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m <span class="ot">-&gt;</span> m
+mappend <span class="fu">=</span> <span class="fu">&lt;&gt;</span></code></pre></div>
 <p>to &quot;combine&quot; two options together.</p>
-<h5>
+<h5 class="codeheader">
 full picture
 </h5>
 <p>Now, reading through the code we have, we start with a <code>str :: ReadM String</code>, use the <code>metavar</code> option to give it a name, and the <code>help</code> option to give it a help string.</p>
+<pre><code>metavar :: ReadM a =&gt; String -&gt; Mod ArgumentFields String
+help ::  String -&gt; Mod f a</code></pre>
+<h6>
+use of <code>metavar</code> and <code>help</code>
+</h6>
 <pre><code>$ tp add --help
 Usage: teleport-exe add NAME ...
  ...
@@ -339,7 +346,7 @@ Available options:
 folderParser <span class="fu">=</span> argument
               (str <span class="co">-- :: Parser String</span>
                 <span class="fu">&gt;&gt;=</span>
-               readFolderPath)
+               readFolderPath) <span class="co">-- :: String -&gt; ReadM FilePath</span>
               (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
               metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
               help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)
@@ -350,6 +357,15 @@ readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span
                  (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
                      <span class="kw">then</span> return path
                      <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))</code></pre></div>
+<p>Here, we look at how to build a more complex argument parser from the simple <code>str</code> argument. We compose <code>str :: ReadM String</code> with <code>readFolderPath ::  String -&gt; ReadM FilePath</code> using their <code>Monad instance</code></p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath</code></pre></div>
+<p>There is some fluff with converting from <code>String</code> to <code>Text</code>, but the main part of the code is in using</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">readerError <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath</code></pre></div>
+<p>to report an error when the path given is invalid.</p>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">value ::</span> <span class="dt">HasValue</span> f a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Mod</span> f a</code></pre></div>
+</h5>
+<p>We use the <code>value</code> modifier to assign a default value to the option. We use &quot;.&quot; which is the current folder as a default option</p>
 <hr/>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseRemoveCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
 parseRemoveCommand <span class="fu">=</span> fmap (<span class="dt">CommandRemove</span> <span class="fu">.</span> <span class="dt">RemoveOptions</span>) tpnameParser
