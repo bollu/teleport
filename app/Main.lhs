@@ -251,38 +251,40 @@ main = do
 \end{code}
 Let's unpack the types in `main`.
 
-our core `Parser` is
+<h5 class="codeheader">
 ```haskell
 parseCommand :: Parser Command
 ```
-which we run using `showHelpOnErrorExecParser` which executes the parser,
+</h5>
+this is our core `Parser` which we run using
+`showHelpOnErrorExecParser` which executes the parser,
 and shows an error in case the parser fails to execute. If the parse
 succeeds, it calls `run` which runs `command :: Command`
 
-<h4> `helper` </h4>
+<h5 class="codeheader">
 ```haskell
-helper :: Parser (a -> a) 
+helper :: Parser (a -> a)
 ```
+</h5>
 `helper` takes any parser, and adds "help" as an option to it. We apply
 it to all parsers so `--help` works.
 
-<h4> `info` </h4>
+<h5 class="codeheader">
 ```haskell
 info :: Parser a -> InfoMod a -> ParserInfo a
 ```
+</h5>
 `info` takes a parser and allows us to attach a `InfoMod` which adds help and
 display information to the parser
 
 
-<h4>
-`fullDesc`,`progDesc`,`header`
-</h4>
-
+<h5 class="codeheader">
 ```haskell
 fullDesc :: InfoMod a
 progDesc :: String -> InfoMod a
 header :: String -> InfoMod a
 ```
+</h5>
 all of these allow us to attach `InfoMod` to a `Parser`, which changes the
 information that is printed with a `Parser`.
 
@@ -357,8 +359,8 @@ parseGotoCommand = CommandGoto <$> (GotoOptions <$> tpnameParser)
 -- Common parsers
 -- """"""""""""""
 readFolderPath :: String -> ReadM FilePath
-readFolderPath s = T.pack s |> 
-                 Path.fromText |> 
+readFolderPath s = T.pack s |>
+                 Path.fromText |>
                  (\path -> if Path.valid path
                      then return path
                      else readerError ("invalid path: " ++ (show path)))
@@ -463,7 +465,7 @@ dieJSONParseError jsonFilePath err =
 decodeTpData :: FilePath -> IO TpData
 decodeTpData jsonFilePath = do
     rawInput <- B.readFile (filePathToString jsonFilePath)
-    let jsonResult = JSON.eitherDecode' rawInput  
+    let jsonResult = JSON.eitherDecode' rawInput
 
     case jsonResult of
       Left err -> dieJSONParseError jsonFilePath err

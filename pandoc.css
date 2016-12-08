@@ -325,8 +325,8 @@ table td {
     page-break-after: avoid;
   }
 }
-codeheader {
-    border-top: 3px solid #EFEFEF;
+.codeheader {
+    border-top: 2px solid #EFEFEF;
     padding-top: 0.1em;
 
 }

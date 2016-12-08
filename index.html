@@ -210,25 +210,23 @@ main <span class="fu">=</span> <span class="kw">do</span>
     <span class="co">-- run :: IO ()</span>
     run command</code></pre></div>
 <p>Let's unpack the types in <code>main</code>.</p>
-<p>our core <code>Parser</code> is</p>
+<h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span></code></pre></div>
-<p>which we run using <code>showHelpOnErrorExecParser</code> which executes the parser, and shows an error in case the parser fails to execute. If the parse succeeds, it calls <code>run</code> which runs <code>command :: Command</code></p>
-<h4>
-<code>helper</code>
-</h4>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">helper ::</span> <span class="dt">Parser</span> (a <span class="ot">-&gt;</span> a) </code></pre></div>
+</h5>
+<p>this is our core <code>Parser</code> which we run using <code>showHelpOnErrorExecParser</code> which executes the parser, and shows an error in case the parser fails to execute. If the parse succeeds, it calls <code>run</code> which runs <code>command :: Command</code></p>
+<h5 class="codeheader">
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">helper ::</span> <span class="dt">Parser</span> (a <span class="ot">-&gt;</span> a)</code></pre></div>
+</h5>
 <p><code>helper</code> takes any parser, and adds &quot;help&quot; as an option to it. We apply it to all parsers so <code>--help</code> works.</p>
-<h4>
-<code>info</code>
-</h4>
+<h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">info ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a <span class="ot">-&gt;</span> <span class="dt">ParserInfo</span> a</code></pre></div>
+</h5>
 <p><code>info</code> takes a parser and allows us to attach a <code>InfoMod</code> which adds help and display information to the parser</p>
-<h4>
-<code>fullDesc</code>,<code>progDesc</code>,<code>header</code>
-</h4>
+<h5 class="codeheader">
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">fullDesc ::</span> <span class="dt">InfoMod</span> a
 <span class="ot">progDesc ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a
 <span class="ot">header ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">InfoMod</span> a</code></pre></div>
+</h5>
 <p>all of these allow us to attach <code>InfoMod</code> to a <code>Parser</code>, which changes the information that is printed with a <code>Parser</code>.</p>
 <p>They have a <code>Monoid</code> instance, and the <code>&lt;&gt;</code> is the <code>mappend</code> operator that allows us to &quot;smash together&quot; two modifiers into one single modifier. One can think of <code>&lt;&gt;</code> as <code>++</code> for lists: it lets us collect two lists into one.</p>
 <h4>
@@ -284,8 +282,8 @@ parseGotoCommand <span class="fu">=</span> <span class="dt">CommandGoto</span> <
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Common parsers</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
 <span class="ot">readFolderPath ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath
-readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span> 
-                 Path.fromText <span class="fu">|&gt;</span> 
+readFolderPath s <span class="fu">=</span> T.pack s <span class="fu">|&gt;</span>
+                 Path.fromText <span class="fu">|&gt;</span>
                  (\path <span class="ot">-&gt;</span> <span class="kw">if</span> Path.valid path
                      <span class="kw">then</span> return path
                      <span class="kw">else</span> readerError (<span class="st">&quot;invalid path: &quot;</span> <span class="fu">++</span> (show path)))
@@ -364,7 +362,7 @@ dieJSONParseError jsonFilePath err <span class="fu">=</span>
 <span class="ot">decodeTpData ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TpData</span>
 decodeTpData jsonFilePath <span class="fu">=</span> <span class="kw">do</span>
     rawInput <span class="ot">&lt;-</span> B.readFile (filePathToString jsonFilePath)
-    <span class="kw">let</span> jsonResult <span class="fu">=</span> JSON.eitherDecode&#39; rawInput  
+    <span class="kw">let</span> jsonResult <span class="fu">=</span> JSON.eitherDecode&#39; rawInput
 
     <span class="kw">case</span> jsonResult <span class="kw">of</span>
       <span class="dt">Left</span> err <span class="ot">-&gt;</span> dieJSONParseError jsonFilePath err
