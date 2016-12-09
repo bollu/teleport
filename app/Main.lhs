@@ -14,7 +14,7 @@ can be added, deleted, listed, and goto'd.
 
 <h4> tp add  &lt;warpname&gt; [warppath] </h4>
 
-add a "warp point" that allows us to come back to the folder.
+Add a "warp point" that allows us to come back to the folder.
 By default, the current working directory is pointed by the name. An 
 alternate path can be supplied.
 
@@ -29,7 +29,7 @@ teleport-hs	/Users/bollu/play/teleport-haskell/
 
 <h4> tp list </h4>
 
-list all warp points
+List all warp points.
 
 <h5> Example Usage </h5>
 
@@ -43,11 +43,11 @@ tp	/Users/bollu/prog/teleport-haskell/
 
 <h4> tp goto &lt;warp point&gt; </h4>
 
-go to the warp point. This is complicated, since we are not allowed to change
-the working directory of the shell. So, we will write a simple shell
-script wrapper around teleport. 
+Go to the warp point. There's a complication here: we are not allowed to change
+the working directory of the shell. To deal with this, we write a simple shell
+script wrapper around teleport.
 
-The shell script is called `teleport.sh`
+The shell script is called: `teleport.sh`
 
 
 <h4> tp remove &lt;warp point&gt; </h4>
@@ -63,8 +63,8 @@ removed teleport point [teleport-hs]
 
 <h2> Code </h2>
 
-Let's start reading the code, and learn about the libraries as we go along
-First thing's first, let us get the MIT license out of the way.
+Let's start reading the code, and learn about the libraries as we go along.
+First things first, let us get the MIT license out of the way.
 
 
 <hr/>
@@ -103,7 +103,7 @@ Haskell Extensions
 a handy extension to have around.
 
 `RecordWildCards` is more interesting, and I'll describe it in more detail when we
-get to it
+get to it.
 <hr/>
 \begin{code}
 {-# LANGUAGE OverloadedStrings #-}
@@ -131,7 +131,7 @@ import Data.Aeson ((.=), (.:))
 \end{code}
 
 We use `Aeson` for reading and writing JSON files. We use JSON to store
-our settings
+our settings.
 
 
 <hr/>
@@ -156,7 +156,7 @@ import qualified Data.ByteString.Lazy as B
 
 We choose `Text` over `String` since the libraries that we use play along
 nicer with `Text`. `String` is just `[Char]` in haskell, which is quite
-inefficient since its _literally_ a linked list.
+inefficient since it's _literally_ a linked list.
 `Text` uses a more efficient representation of text.
 Text is used internally everywhere in the application to manipulate text.
 
@@ -201,7 +201,7 @@ we create options datatypes to store the options.
 * `Command` is the data type that allows us to combine all of this
    information.
 
-our parser will return a `Command` that tells us what to do.
+Our parser will return a `Command` that tells us what to do.
 
 <hr/>
 \begin{code}
@@ -256,10 +256,10 @@ Let's unpack the types in `main`.
 parseCommand :: Parser Command
 ```
 </h5>
-this is our core `Parser` which we run using
-`showHelpOnErrorExecParser` which executes the parser,
-and shows an error in case the parser fails to execute. If the parse
-succeeds, it calls `run` which runs `command :: Command`
+This is our core `Parser` which we run using
+`showHelpOnErrorExecParser`. This executes the parser,
+and shows an error in case the parser fails to execute. If it
+succeeds, it calls `run` which runs `command :: Command`.
 
 <h5 class="codeheader">
 ```haskell
@@ -275,7 +275,7 @@ info :: Parser a -> InfoMod a -> ParserInfo a
 ```
 </h5>
 `info` takes a parser and allows us to attach a `InfoMod` which adds help and
-display information to the parser
+display information to the parser.
 
 
 <h5 class="codeheader">
@@ -285,7 +285,7 @@ progDesc :: String -> InfoMod a
 header :: String -> InfoMod a
 ```
 </h5>
-all of these allow us to attach `InfoMod` to a `Parser`, which changes the
+All of these allow us to attach `InfoMod` to a `Parser`, which changes the
 information that is printed with a `Parser`.
 
 They have a `Monoid` instance, and the `<>` is the `mappend` operator that
@@ -326,7 +326,7 @@ parseCommand = subparser
         (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
 
 \end{code}
-the `subparser` is a function that lets us create a `Parser` out of of a
+The `subparser` is a function that lets us create a `Parser` out of of a
 `command`. We smash the `command`s together with their monoid instance (`<>`).
 
 The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
@@ -346,7 +346,7 @@ parseListCommand = pure (CommandList)
 \end{code}
 
 
-the parser needs no options (the `list` command takes no options),
+The parser needs no options (the `list` command takes no options),
 so we use
 ```haskell
 pure :: a -> f a
@@ -373,7 +373,7 @@ parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Par
                    )
 \end{code}
 
-we use
+We use
 ```haskell
 liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions
 ```
@@ -381,7 +381,7 @@ liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions
 and we pass it two parser `tpNameParser` and `folderParser` (which will be defined below)
 to create a `Parser AddOptions`.
 
-we then convert `Parser AddOptions` to `Parser Command` by using
+We then convert `Parser AddOptions` to `Parser Command` by using
 
 ```haskell
 fmap CommandAdd :: Parser AddOptions -> Parser Command
@@ -409,11 +409,11 @@ or
 $ tp list
 ```
 
-Now, we need to learn how to parser _options_. Options such as
+Now, we need to learn how to parse _options_. Eg.:
 ```
 $ tp add <warp point name> ...
 ```
-to do this, the __general function that is used is called `argument`__.
+To do this, the __general function that is used is called `argument`__.
 ```haskell
 argument :: ReadM a -> -- in general, "can be read".
             Mod ArgumentFields a -> -- modifiers to a parser
@@ -426,7 +426,7 @@ Breaking this down as usual,
 ReadM a
 ```
 </h5>
-I won't explain `ReadM` here, it's mostly a way to "read something in". We will mostly start with
+I won't explain `ReadM` here: it's mostly a way to "read something in". We will mostly start with
 the `ReadM` instance
 ```haskell
 str :: ReadM String
@@ -468,7 +468,7 @@ Available options:
   NAME                     name of the teleport point for usage
   ...
 ```
-the `NAME` comes from the `metavar` option, and the help string comes from the `help` option
+The `NAME` comes from the `metavar` option, and the help string comes from the `help` option.
 
 <hr/>
 \begin{code}
@@ -514,8 +514,8 @@ value :: HasValue f a => a -> Mod f a
 ```
 </h5>
 
-We use the `value` modifier to assign a default value to the option. We use "."
-which is the current folder as a default option
+We use the `value` modifier to assign a default value to the option. We use ".",
+which is the current folder, as a default option.
 
 <hr/>
 \begin{code}
@@ -527,9 +527,9 @@ parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 
 \end{code}
 
-we reuse our `tpnameParser :: Parser String` to parse names. We convert them to
+We reuse our `tpnameParser :: Parser String` to parse names. We convert them to
 `Command` by first converting them to the correct `{Remove, Goto}Options` type,
-and then using the `Command{Remove, Goto}` constructors
+and then using the `Command{Remove, Goto}` constructors.
 
 <hr/>
 \begin{code}
@@ -567,7 +567,7 @@ We are given an `(Object json) :: Value`, and we need to produce a `Parser`
 We use `(.:)`, which when given a JSON `Object` and the name of a key, gives us a `Parser a`.
 This is used to extract the `name` and the `absFolderPath` from the JSON object.
 
-The constructor for `TpPoint`  is lifed into the `Parser` using `liftA2`
+The constructor for `TpPoint`  is lifted into the `Parser` using `liftA2`.
  
 <h5 class="codeheader"> `ToJSON` </h5>
 We need to implement
@@ -580,15 +580,15 @@ To create a `Value`, we use
 JSON.object = object :: [Pair] -> Value
 ```
 
-that lets us give it an array of `Pair` objects and it creates a Value.
+This lets us give it an array of `Pair` objects and it creates a Value.
 We make `Pair` objects using
 
 
 ```haskell
 (.=) :: ToJSON v => Text -> v -> (kv ~ Pair)
 ```
-the `.=` creates any `KeyValue`. We use it to create a `Pair` from our a tag name
-and a value (which has a `ToJSON` instance)
+The `.=` creates any `KeyValue`. We use it to create a `Pair` from a tag name
+and a value (which has a `ToJSON` instance).
 
 <hr/>
 \begin{code}
@@ -616,7 +616,7 @@ defaultTpData = TpData {
 }
 \end{code}
 
-the `defaultTpData` represents the default `TpData` we will use if no
+The `defaultTpData` represents the default `TpData` we will use if no
 warp data is found on execution.
 <hr/>
 \begin{code}
@@ -672,11 +672,11 @@ loadTpData jsonFilePath = do
            return defaultTpData
 \end{code}
 
-we try to load a file. If the file does not exist, we use
+We try to load a file. If the file does not exist, we use
 ```haskell
 defaultTpData :: TpData
 ```
-we save this in the `createTpDataFile`, and then just retrn the default value.
+We save this in the `createTpDataFile`, and then just retrn the default value.
 If we do get a value, then we return the parsed object.
 
 <hr/>
@@ -767,7 +767,7 @@ setSGR :: [SGR] -> IO ()
 
 It takes an array of `SGR` (Select Graphic Rendition) objects, and applies them.
 
-The ones we use in `Teleport`
+The ones we use in `Teleport`:
 ```haskell
 SetColor :: ConsoleLayer ColorIntensity Color -> SGR
 
@@ -775,7 +775,7 @@ ConsoleLayer = Foreground | Background
 ColorIntensity = Dull | Vivid
 Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
 ```
-to add colors to our output
+(to add colors to our output).
 <hr/>
 \begin{code}
 -- Add command runner
@@ -811,10 +811,10 @@ runAdd AddOptions{..} = do
 We check if a similar teleport point exists. If it does, we quit using
 `dieIfPointExists`.
 
-If not, we
+If not, we:
 
-* create a new teleport point `newTpPoint`
-* add it to the list in `newTpData`
+* create a new teleport point `newTpPoint`,
+* add it to the list in `newTpData`, and
 * save the new data with `saveTpData`.
 
 <hr/>
@@ -887,7 +887,7 @@ runRemove RemoveOptions{..} = do
                     putStr "]"
 \end{code}
 
-if there is no teleport point with the given name, we fail.
+If there is no teleport point with the given name, we fail.
 If such a teleport point exists, we remove the point by filtering it out
 and then save the JSON file
 <hr/>
@@ -924,7 +924,7 @@ function tp() {
     fi
 }
 ```
-when `tp goto` succeeds, we print out the path to the output stream in Haskell
+When `tp goto` succeeds, we print out the path to the output stream in Haskell
 and returns a return code of `2`. The shell script sees that the return code is `2`, so
 it runs a `cd` to the correct path
 
@@ -940,4 +940,4 @@ run command =
         CommandGoto gotoOpt -> runGoto gotoOpt
         other @ _ -> print other
 \end{code}
-We simply pattern match on the command and then call the correct `run*` function
+We simply pattern match on the command and then call the correct `run*` function.
