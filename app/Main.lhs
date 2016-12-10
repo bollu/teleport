@@ -1,67 +1,89 @@
-
-
-<h1> Teleport - A haskell tutorial on Turtle, JSON and having fun</h1>
-
-
-<h2> Goal </h2>
-
+<h1> Teleport - How to write a small, useful command line application in Haskell</h1>
 
 We're going to build a command line application called `teleport`,
 It allows people to add "warp points" to navigate the file system. These
 can be added, deleted, listed, and goto'd.
 
-<h3> Commands </h3>
+We will be using the libraries
+* `optparse-applicative`: parsing command line arguments
+* `Aeson`: reading/writing `JSON`
+* `Turtle`: writing "shell"-y code for files and directories
+* `ANSI`: emit colors in the console
+* `Text` and `Bytestring`: forced to use these because of `Aeson`, `Filepath`
 
-<h4> tp add  &lt;warpname&gt; [warppath] </h4>
+The indented audience are those who are comfortable with say, `IO` and
+perhaps a couple other monads, but wish to learn how to use libraries in Haskell,
+and also put libraries together.
+
+
+<h3> Teleport's commands </h3>
+
+<h4>`tp add  <warpname> [warppath]` </h4>
 
 add a "warp point" that allows us to come back to the folder.
-By default, the current working directory is pointed by the name. An 
-alternate path can be supplied.
 
-<h5> Example Usage </h5>
+the default "warp path" is the current folder.
+
+<h6> Example Usage </h5>
 
 ```
-teleport-haskell [master●] tp add teleport-hs
+# by default, current working directory is used
+~/play/teleport-haskell$ tp add teleport-hs
 creating teleport point:
 
 teleport-hs	/Users/bollu/play/teleport-haskell/
+
+
+# on providing the path to a teleport point, that path is used
+~/play/teleport-haskell$ tp add sf ~/play/software-foundations
+creating teleport point:
+
+sf	/Users/bollu/play/software-foundations
+
 ```
 
-<h4> tp list </h4>
+<h4> `tp list` </h4>
 
 list all warp points
 
-<h5> Example Usage </h5>
+<h6> Example Usage </h6>
 
 ```
-teleport-haskell [master●] tp list
+~/play/teleport-haskell$ tp list
 teleport points: (total 3)
 se	/Users/bollu/play/se/
 sf	/Users/bollu/play/software-foundations/
 tp	/Users/bollu/prog/teleport-haskell/
 ```
 
-<h4> tp goto &lt;warp point&gt; </h4>
+<h4> `tp goto <warp point>` </h4>
 
 go to the warp point. This is complicated, since we are not allowed to change
 the working directory of the shell. So, we will write a simple shell
-script wrapper around teleport. 
+script wrapper around teleport.
 
 The shell script is called `teleport.sh`
 
+<h6> Example Usage </h6>
+```
+~$ tp goto tp
+~/p/teleport-haskell$
+```
+our current working directory changed and became the `teleport-haskell`
+folder
 
-<h4> tp remove &lt;warp point&gt; </h4>
+<h4> `tp remove <warp point>` </h4>
 
 Remove an existing warp point.
 
-<h5> Example Usage </h5>
+<h6> Example Usage </h6>
 ```
-teleport-haskell [master●] tp remove teleport-hs
+~/play/teleport-haskell$ tp remove teleport-hs
 removed teleport point [teleport-hs]
 ```
 
 
-<h2> Code </h2>
+<h2> Reading the Code </h2>
 
 Let's start reading the code, and learn about the libraries as we go along
 First thing's first, let us get the MIT license out of the way.
@@ -90,20 +112,8 @@ First thing's first, let us get the MIT license out of the way.
 --OTHER DEALINGS IN THE SOFTWARE.
 \end{code}
 
-Haskell Extensions
-------------------
+The interesting code starts from here.
 
-<hr/>
-\begin{code}
-#!/usr/bin/env stack
-\end{code}
-
-`OverloadedStrings` allows us to freely write code in
-\" and have it be treated as String or Data.Text depending on context. It's
-a handy extension to have around.
-
-`RecordWildCards` is more interesting, and I'll describe it in more detail when we
-get to it
 <hr/>
 \begin{code}
 {-# LANGUAGE OverloadedStrings #-}
@@ -111,6 +121,12 @@ get to it
 \end{code}
 
 
+`OverloadedStrings` allows us to freely write code in
+\" and have it be treated as String or Data.Text depending on context. It's
+a handy extension to have around.
+
+`RecordWildCards` is more interesting, and I'll describe it in more detail when we
+get to it
 <hr/>
 \begin{code}
 import qualified Turtle
@@ -231,16 +247,16 @@ data GotoOptions = GotoOptions {
 
 <hr/>
 \begin{code}
--- | A version of 'execParser' which shows full help on error.                
---                                                                            
--- The regular 'execParser' only prints usage on error, which doesn't         
--- include the options, subcommands, or mention of the help switch            
--- @--help@.                                                                  
+-- | A version of 'execParser' which shows full help on error.
+--
+-- The regular 'execParser' only prints usage on error, which doesn't
+-- include the options, subcommands, or mention of the help switch
+-- @--help@.
 showHelpOnErrorExecParser :: ParserInfo a -> IO a
 showHelpOnErrorExecParser = customExecParser (prefs showHelpOnError)
 
 main :: IO ()
-main = do 
+main = do
     -- command :: Command
     command <- showHelpOnErrorExecParser (info (helper <*> parseCommand)
                        (fullDesc  <>
@@ -306,13 +322,13 @@ when the parse fails. It executed the parser passed to it (`parseCommand`)
 parseCommand :: Parser Command
 parseCommand = subparser
     -- add command
-    ((command 
+    ((command
         "add" -- command name
-        (info -- attach help information to the parser 
+        (info -- attach help information to the parser
             (helper <*> parseAddCommand) -- core parser with the --help option
             (fullDesc <> progDesc "add a teleport point") -- description of command (for info)
         )
-    ) 
+    )
     <> -- combine with the next command
 
     -- list command
@@ -568,7 +584,7 @@ We use `(.:)`, which when given a JSON `Object` and the name of a key, gives us 
 This is used to extract the `name` and the `absFolderPath` from the JSON object.
 
 The constructor for `TpPoint`  is lifed into the `Parser` using `liftA2`
- 
+
 <h5 class="codeheader"> `ToJSON` </h5>
 We need to implement
 ```haskell
@@ -819,10 +835,9 @@ If not, we
 
 <hr/>
 \begin{code}
-    
+
 -- List Command
 -- """"""""""""
-
 
 runList :: IO ()
 runList = do
@@ -938,6 +953,12 @@ run command =
         CommandList -> runList
         CommandRemove removeOpt -> runRemove removeOpt
         CommandGoto gotoOpt -> runGoto gotoOpt
-        other @ _ -> print other
 \end{code}
 We simply pattern match on the command and then call the correct `run*` function
+
+
+<h2> Finale and Conclusion </h2>
+
+Hopefully, this gave you a decent overview on how to combine libraries and use
+all of them in Haskell. If there are any bugs/comments,
+<h3> TODO </h3>
