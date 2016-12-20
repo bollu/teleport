@@ -332,7 +332,7 @@ table td {
 
 }
 
-div.sourceCode>div.sourceCode {
+div.sourceCode>div.sourceCode, pre {
     overflow-x: scroll;
     border: 1px solid #DDDDDD;
     padding-left: 2em;

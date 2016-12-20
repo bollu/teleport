@@ -22,7 +22,7 @@ The indented audience are those who are comfortable with
 * `IO` (no other monads required)
 * general haskell patterns
 
-You will learn to use Haskell libraries, and put them together to build somethingg
+You will learn to use Haskell libraries, and put them together to build something
 tangible.
 
 <h3> Getting the code </h3>
