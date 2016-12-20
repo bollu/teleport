@@ -1,9 +1,9 @@
-# Warp
+# Teleport
+## A lightning-fast tool to quickly switch between repositories.
 ### [View Literate Haskell tutorial for the project here](http://bollu.github.io/teleport)
 
 [![Build Status](https://travis-ci.org/bollu/teleport.svg?branch=master)](https://travis-ci.org/bollu/teleport)
 
-A lightning-fast tool to quickly switch between repositories.
 
 This tool is written as a basic introduction on writing CLIs in haskell, and a
 practical one at that. I'll be showing
