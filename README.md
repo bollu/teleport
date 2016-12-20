@@ -1,6 +1,6 @@
 # Teleport
-## A lightning-fast tool to quickly switch between repositories.
-### [View Literate Haskell tutorial for the project here](http://bollu.github.io/teleport)
+### A lightning-fast tool to quickly switch between repositories.
+#### [View Literate Haskell tutorial for the project here](http://bollu.github.io/teleport)
 
 [![Build Status](https://travis-ci.org/bollu/teleport.svg?branch=master)](https://travis-ci.org/bollu/teleport)
 
