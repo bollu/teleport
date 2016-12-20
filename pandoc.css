@@ -113,9 +113,9 @@ blockquote {
 
 hr {
     display: block;
-    height: 3px;
+    height: 1px;
     border: 0;
-    background-color: #BCBCBC;
+    background-color: #DFDFDF;
     margin: 0.1em 0;
     padding: 0;
 }
@@ -327,11 +327,13 @@ table td {
 }
 
 .codeheader {
-    border-top: 1px solid #DFDFDF;
+    border-top: 1px solid #EFEFEF;
     padding-top: 0.1em;
 
 }
 
-code {
+div.sourceCode>div.sourceCode {
     overflow-x: scroll;
+    border: 1px solid #DDDDDD;
+    padding-left: 2em;
 }
