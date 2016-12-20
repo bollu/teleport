@@ -1,5 +1,6 @@
 <h1> Teleport - How to write a small, useful command line application in Haskell</h1>
 
+
 We're going to build a command line application called `teleport`,
 It allows people to add "warp points" to navigate the file system. These
 can be added, deleted, listed, and goto'd.
@@ -12,9 +13,19 @@ We will be using the libraries:
 * `ANSI`: emit colors in the console
 * `Text` and `Bytestring`: forced to use these because of `Aeson`, `Filepath`
 
-The indented audience are those who are comfortable with say, `IO` and
-perhaps a couple other monads, but wish to learn how to use libraries in Haskell,
-and also put libraries together.
+<h3> Intended audience </h3>
+
+The indented audience are those who are comfortable with
+
+
+* Functor, Applicative, Monad and `do` notation
+* `IO` (no other monads required)
+* general haskell patterns
+
+You will learn to use Haskell libraries, and put them together to build somethingg
+tangible.
+
+<h3> Getting the code </h3>
 
 [The code is available at the repository here (link)](https://github.com/bollu/teleport).
 
@@ -913,6 +924,7 @@ function tp() {
         else echo "$OUTPUT"
     fi
 }
+
 ```
 when `tp goto` succeeds, we print out the path to the output stream in Haskell
 and returns a return code of `2`. The shell script sees that the return code is `2`, so
