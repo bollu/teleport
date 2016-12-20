@@ -104,7 +104,7 @@ Let's start reading the code, and learn about the libraries as we go along
 First thing's first, let us get the MIT license out of the way.
 
 
-<hr/>
+
 \begin{code}
 --Copyright (c) 2015 Siddharth Bhat
 
@@ -129,7 +129,7 @@ First thing's first, let us get the MIT license out of the way.
 
 The interesting code starts from here.
 
-<hr/>
+
 \begin{code}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -142,7 +142,7 @@ a handy extension to have around.
 
 `RecordWildCards` is more interesting, and I'll describe it in more detail when we
 get to it
-<hr/>
+
 \begin{code}
 import qualified Turtle
 import Prelude hiding (FilePath)
@@ -155,7 +155,7 @@ a nice set of abstractions for dealing with OS specific stuff.
 We choose to hide `FilePath` since `turtle` (the library for interfacing
 with the OS) has its own version of `FilePath`.
 
-<hr/>
+
 \begin{code}
 import qualified Data.Aeson as JSON
 import Data.Aeson ((.=), (.:))
@@ -165,7 +165,7 @@ We use `Aeson` for reading and writing JSON files. We use JSON to store
 our settings
 
 
-<hr/>
+
 \begin{code}
 import Options.Applicative
 import Control.Monad
@@ -177,7 +177,7 @@ These are our default imports of standard library stuff.
 
 
 
-<hr/>
+
 \begin{code}
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T.Encoding
@@ -193,14 +193,14 @@ Text is used internally everywhere in the application to manipulate text.
 
 We need `ByteString` to read and write JSON files onto the filesystem. 
 
-<hr/>
+
 \begin{code}
 import qualified System.Console.ANSI as ANSI
 \end{code}
 
 the `ANSI` library is used for coloring our outputs.
 
-<hr/>
+
 \begin{code}
 tpProgDesc :: String
 tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
@@ -213,7 +213,7 @@ tpHeader = "Teleport: move around your filesystem"
 Strings that are used in our library for descriptions. I prefer to keep these
 as constants rather than hard-code them.
 
-<hr/>
+
 \begin{code}
 -- the combined datatype representing all tp commands
 data Command = CommandList |
@@ -234,7 +234,7 @@ we create options datatypes to store the options.
 
 our parser will return a `Command` that tells us what to do.
 
-<hr/>
+
 \begin{code}
 -- options pased to 'tp add'
 data AddOptions = AddOptions {
@@ -246,7 +246,7 @@ data AddOptions = AddOptions {
 `tp add` needs the name of the warp point to add, and the path of the folder
 where it should get added to.
 
-<hr/>
+
 \begin{code}
 -- options passed to 'tp remove'
 data RemoveOptions = RemoveOptions {
@@ -260,7 +260,7 @@ data GotoOptions = GotoOptions {
 \end{code}
 
 
-<hr/>
+
 \begin{code}
 -- | A version of 'execParser' which shows full help on error.
 --
@@ -332,7 +332,7 @@ showHelpOnErrorExecParser
 As explained above, it takes a parser and allows it to show help information
 when the parse fails. It executed the parser passed to it (`parseCommand`)
 
-<hr/>
+
 \begin{code}
 parseCommand :: Parser Command
 parseCommand = subparser
@@ -364,7 +364,7 @@ The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
 `main` to attach information and help to the parser.
 
 
-<hr/>
+
 \begin{code}
 -- Command parsers
 -- """""""""""""""
@@ -380,7 +380,7 @@ the parser needs no options (the `list` command takes no options),
 so we use `(pure :: a -> f a)`{.haskell} to convert `(CommandList :: Command)`{.haskell}
 to `(pure CommandList :: Parser Command)`{.haskell}
 
-<hr/>
+
 \begin{code}
 parseAddCommand :: Parser Command
 parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Parser Command
@@ -401,7 +401,7 @@ to create a `Parser AddOptions`{.haskell}.
 we then convert `(Parser AddOptions)`{.haskell} to `(Parser Command)`{.haskell}
 by using `(fmap CommandAdd :: Parser AddOptions -> Parser Command)`{.haskell}
 
-<hr/>
+
 
 Till now, we were creating "command" parsers that parse things like
 ```bash
@@ -463,7 +463,7 @@ Available options:
 ```
 the `NAME` comes from the `metavar` option, and the help string comes from the `help` option
 
-<hr/>
+
 \begin{code}
 -- take a string, parse it into a folder path.
 -- if path does not exist, return an error
@@ -489,7 +489,7 @@ allows to return an error string.
 
 
 
-<hr/>
+
 \begin{code}
 -- Folder Parser
 -- """"""""""""""
@@ -517,7 +517,7 @@ and fails if the parse fails.
 define a default value to the "folder" option. We set the default to "."
 (the current folder)
 
-<hr/>
+
 \begin{code}
 parseRemoveCommand :: Parser Command
 parseRemoveCommand = fmap (CommandRemove . RemoveOptions) tpnameParser
@@ -533,7 +533,7 @@ parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 
 Similary, we created a `(CommandGoto :: Command)`{.haskell} with the same pipeline
 
-<hr/>
+
 We will start creating data types to hold the data for our program.
 
 * `TpPoint`{.haskell} stores the information of a warp point.
@@ -566,7 +566,7 @@ which when given a `JSON` `Object` and a key, gives us a `Parser a`{.haskell}
 * the `Parser` has an applicative instance, so we lift our `TpPoint`{.haskell} 
 to the `Parser`{.haskell} type with `liftA2`
 
-<hr/>
+
 \begin{code}
 instance JSON.ToJSON TpPoint where
     toJSON (TpPoint {..}) =
@@ -588,7 +588,7 @@ with a `Value`. the `.=`{.haskell} creates any `KeyValue`.
 We use it to create a `Pair`.
 
 
-<hr/>
+
 We'll write a `TpData` class which stores all the warp points together in a
 list.
 
@@ -608,7 +608,7 @@ instance JSON.ToJSON TpData where
 \end{code}
 
 
-<hr/>
+
 \begin{code}
 defaultTpData :: TpData
 defaultTpData = TpData {
@@ -618,7 +618,7 @@ defaultTpData = TpData {
 
 the `defaultTpData` represents the default `TpData` we will use if no
 warp data is found on execution.
-<hr/>
+
 \begin{code}
 filePathToString :: FilePath -> String
 filePathToString = Path.encodeString
@@ -635,7 +635,7 @@ dieJSONParseError jsonFilePath err = do
 We write a quick function that errors out if the parse failed. To do this,
 we use `Turtle.die` that takes an error string and returns an `IO a` for failure.
 
-<hr/>
+
 \begin{code}
 decodeTpData :: FilePath -> IO TpData
 decodeTpData jsonFilePath = do
@@ -651,7 +651,7 @@ We use `JSON.eitherDecode' ::  FromJSON a => ByteString -> Either String a`{.has
 which takes a file path and returns an `Either String a`{.haskell} with the error
 in `Left`{.haskell}
 
-<hr/>
+
 \begin{code}
 createTpDataFile :: FilePath -> IO ()
 createTpDataFile jsonFilePath = saveTpData jsonFilePath defaultTpData
@@ -671,7 +671,7 @@ We try to load a file. If the file does not exist, we use `defaultTpData :: TpDa
 We save this in the `createTpDataFile`, and then just return the default value.
 If we do get a value, then we return the parsed object.
 
-<hr/>
+
 \begin{code}
 saveTpData :: FilePath -> TpData -> IO ()
 saveTpData jsonFilePath tpData = do
@@ -690,7 +690,7 @@ Note the use of `Turtle`{.haskell} for finding the home folder (`Turtle.home`) a
 to touch files (`Turtle.touch`{.haskell}).
 We concatenate `FilePath`s using `(</> :: FilePath -> FilePath -> FilePath)`{.haskell}
 
-<hr/>
+
 We're now  writing functions to error out nicely with colors,
 since everybody likes colors `:)`
 
@@ -713,7 +713,7 @@ setErrorColor = ANSI.setSGR [ANSI.SetColor -- color to set
 * The `SGR` instance we use in `Teleport` are `SetColor :: ConsoleLayer ColorIntensity Color -> SGR`{.haskell}
 to add colors to our output
 
-<hr/>
+
 \begin{code}
 -- print a teleport point to stdout
 tpPointPrint :: TpPoint -> IO ()
@@ -768,7 +768,7 @@ dieTpPointExists tpPoint  =  do
 to check if the file and folder we care about exists.
 
 
-<hr/>
+
 Now, we're writing the `run` functions that tie everything up. `runAdd`:
 
 * Checks that the teleport point is valid.
@@ -808,7 +808,7 @@ runAdd AddOptions{..} = do
 \end{code}
 
 
-<hr/>
+
 
 We just iterate over all the teleport points, printing them
 one-by-one. Since we need an "effect" to happen for each `tpPoint`
@@ -831,7 +831,7 @@ runList = do
 
 \end{code}
 
-<hr/>
+
 
 To remove a teleport point:
 
@@ -873,7 +873,7 @@ runRemove RemoveOptions{..} = do
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
                     putStr "]"
 \end{code}
-<hr/>
+
 The proces of going to a teleport point is more complex, since our command (`teleport`)
 cannot change the working directory of another process (the shell).
 
@@ -920,7 +920,7 @@ it runs a `cd` to the correct path
 
 If `tp` returns any code other than `2`, the shell script echoes all the output to the screen.
 
-<hr/>
+
 Now, we see all of it together in our `run` function which was called by `main`
 We simply pattern match on the command and then call the correct `run*` function
 \begin{code}
