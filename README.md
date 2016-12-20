@@ -1,8 +1,9 @@
 # Warp
+### [View Literate Haskell tutorial for the project here](http://bollu.github.io/teleport)
 
 [![Build Status](https://travis-ci.org/bollu/teleport.svg?branch=master)](https://travis-ci.org/bollu/teleport)
 
-A lightning-fast tool to quickly switch between repositories
+A lightning-fast tool to quickly switch between repositories.
 
 This tool is written as a basic introduction on writing CLIs in haskell, and a
 practical one at that. I'll be showing
@@ -12,25 +13,28 @@ practical one at that. I'll be showing
 - actually doing something useful using `turtle`
 - uploading to hackage
 
+
 # Getting started
 
 ## Install script
 
-there is a handy installer script that installs 
+To quickly download, install, and build, run
 
-Have your `.bashrc`, `.zshrc`
-
-## Installing from source
-
-To install from source, use `cabal` by running
-
-```
-cabal install teleport
+```bash
+$ git clone https://github.com/bollu/teleport.git && cd teleport && cabal build && cabal install teleport
 ```
 
-This will download and build `teleport`
+To use the `teleport` wrapper you will need, run 
+
+```bash
+$ echo source `pwd`/teleport.sh >> ~/.bashrc
+```
+
+change `~/.bashrc` to the correct shell needed
 
 # Contributing
+
+Pull requests and bug reports welcome! This is my first haskell "tutorial", so there are quite possibly a lot of stupid mistakes
 
 # License
 

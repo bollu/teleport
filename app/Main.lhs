@@ -4,7 +4,8 @@ We're going to build a command line application called `teleport`,
 It allows people to add "warp points" to navigate the file system. These
 can be added, deleted, listed, and goto'd.
 
-We will be using the libraries
+We will be using the libraries:
+
 * `optparse-applicative`: parsing command line arguments
 * `Aeson`: reading/writing `JSON`
 * `Turtle`: writing "shell"-y code for files and directories
@@ -15,6 +16,21 @@ The indented audience are those who are comfortable with say, `IO` and
 perhaps a couple other monads, but wish to learn how to use libraries in Haskell,
 and also put libraries together.
 
+[The code is available at the repository here (link)](https://github.com/bollu/teleport).
+
+To use the tutorial, a handy way of downloading and building `teleport`:
+
+```bash
+$ git clone https://github.com/bollu/teleport.git && cd teleport && cabal build && cabal install teleport
+```
+
+To use the `teleport` wrapper you will need, run 
+
+```bash
+$ echo source `pwd`/teleport.sh >> ~/.bashrc
+```
+
+change `~/.bashrc` to the correct shell needed
 
 <h3> Teleport's commands </h3>
 
@@ -27,14 +43,13 @@ the default "warp path" is the current folder.
 <h6> Example Usage </h5>
 
 ```
-# by default, current working directory is used
+ # by default, current working directory is used
 ~/play/teleport-haskell$ tp add teleport-hs
 creating teleport point:
 
 teleport-hs	/Users/bollu/play/teleport-haskell/
 
-
-# on providing the path to a teleport point, that path is used
+ # on providing the path to a teleport point, that path is used
 ~/play/teleport-haskell$ tp add sf ~/play/software-foundations
 creating teleport point:
 
@@ -361,20 +376,9 @@ parseListCommand :: Parser Command
 parseListCommand = pure (CommandList)
 \end{code}
 
-
 the parser needs no options (the `list` command takes no options),
-so we use
-```haskell
-pure :: a -> f a
-```
-to convert
-```haskell
-CommandList :: Command
-```
-to
-```haskell
-pure CommandList :: Parser Command
-```
+so we use `(pure :: a -> f a)`{.haskell} to convert `(CommandList :: Command)`{.haskell}
+to `(pure CommandList :: Parser Command)`{.haskell}
 
 <hr/>
 \begin{code}
@@ -390,20 +394,33 @@ parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Par
 \end{code}
 
 we use
-```haskell
-liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions
-```
+`(liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions)`{.haskell}
+and we pass it two parsers `tpNameParser` and `folderParser` (which will be defined below)
+to create a `Parser AddOptions`{.haskell}.
 
-and we pass it two parser `tpNameParser` and `folderParser` (which will be defined below)
-to create a `Parser AddOptions`.
-
-we then convert `Parser AddOptions` to `Parser Command` by using
-
-```haskell
-fmap CommandAdd :: Parser AddOptions -> Parser Command
-```
+we then convert `(Parser AddOptions)`{.haskell} to `(Parser Command)`{.haskell}
+by using `(fmap CommandAdd :: Parser AddOptions -> Parser Command)`{.haskell}
 
 <hr/>
+
+Till now, we were creating "command" parsers that parse things like
+```bash
+$ tp add
+$ tp list
+```
+
+Now, we need to learn how to parse __options__, such as:
+```bash
+$ tp add <warp point name> ...
+```
+to do this, the __general function that is used is called `argument`{.haskell}__.
+```haskell
+argument :: ReadM a -> -- in general, "can be read".
+            Mod ArgumentFields a -> -- modifiers to a parser
+            Parser a
+```
+
+Let's read the code and then come back to the explanation with context:
 \begin{code}
 -- Warp Name parser
 -- """"""""""""""""
@@ -416,65 +433,25 @@ tpnameParser = argument  -- :: ReadM String -> Mod ArgumentFields String -> Pars
                     "name of the teleport point for usage") -- Mod ArgumentFields String
 \end{code}
 
-Till now, we were creating "command" parsers that parse things like
-```
-$ tp add
-```
-or
-```
-$ tp list
-```
+<h5> Types </h5>
 
-Now, we need to learn how to parser _options_. Options such as
-```
-$ tp add <warp point name> ...
-```
-to do this, the __general function that is used is called `argument`__.
-```haskell
-argument :: ReadM a -> -- in general, "can be read".
-            Mod ArgumentFields a -> -- modifiers to a parser
-            Parser a
-```
-Breaking this down as usual,
-
-<h5 class="codeheader">
-```haskell
-ReadM a
-```
-</h5>
-I won't explain `ReadM` here, it's mostly a way to "read something in". We will mostly start with
+* `ReadM a`{.haskell} is a way to "read something in". We will start with
 the `ReadM` instance
-```haskell
-str :: ReadM String
-```
+`(str :: ReadM String)`{.haskell}
 and use the `Functor` and `Monad` instance on `str` create new `ReadM` instances. [For more on
 `ReadM`, click here](https://hackage.haskell.org/package/optparse-applicative-0.13.0.0/docs/Options-Applicative-Builder.html#t:ReadM)
 
-<h5 class="codeheader">
-```haskell
-Mod ArgumentFields a
-```
-</h5>
+* `Mod ArgumentFields a`{.haskell} allows us to modify a `Parser` by
+providing it with modifiers. The modifiers have a `Monoid` instance,
+which allows us to smash them together with `mappend`
 
-This lets us modify a `Parser` by providing it with modifiers. The modifiers have a `Monoid` instance, so
-we use `<>` (`mappend`)
-```haskell
-<> :: Monoid m -> m -> m -> m
-mappend :: Monoid m -> m -> m -> m
-mappend = <>
-```
-to "combine" two options together.
+<h5> Code </h5>
 
-<h5 class="codeheader"> full picture </h5>
-Now, reading through the code we have, we start with a `str :: ReadM String`, use the
-`metavar` option to give it a name, and the `help` option to give it a help string.
+* start with a `str :: ReadM String`{.haskell}
+* use the `metavar` option to give it a name
+* use the `help` option to give it a help string.
 
-```
-metavar :: ReadM a => String -> Mod ArgumentFields String
-help ::  String -> Mod f a
-```
-
-<h6> use of `metavar` and `help` </h6>
+<h5> Use of `metavar` & `help` </h5>
 ```
 $ tp add --help
 Usage: teleport-exe add NAME ...
@@ -485,6 +462,32 @@ Available options:
   ...
 ```
 the `NAME` comes from the `metavar` option, and the help string comes from the `help` option
+
+<hr/>
+\begin{code}
+-- take a string, parse it into a folder path.
+-- if path does not exist, return an error
+readFolderPath :: String -> ReadM FilePath
+readFolderPath s = do
+  let path = Path.fromText (T.pack s)
+  if Path.valid path
+      then return path
+      else readerError ("invalid path: " ++ (show path))
+
+\end{code}
+
+We convert a `String` to a `ReadM FilePath`{.haskell}. 
+Since `ReadM`{.haskell} is a monad, it allows us to do
+error handling within it.
+
+We return `ReadM FilePath`{.haskell} and not a `FilePath`{.haskell} to
+have the ability to return an error.
+
+The `(readerError :: String -> ReadM a)`{.haskell} function
+allows to return an error string.
+
+
+
 
 <hr/>
 \begin{code}
@@ -499,39 +502,20 @@ folderParser = argument
               metavar "FOLDERPATH" <>
               help "path of the teleport folder to teleport to. By default, taken as current working directory")
 
-readFolderPath :: String -> ReadM FilePath
-readFolderPath s = do
-  let path = Path.fromText (T.pack s)
-  if Path.valid path
-      then return path
-      else readerError ("invalid path: " ++ (show path))
-
 \end{code}
 
-Here, we look at how to build a more complex argument parser from the simple `str` argument.
-We compose `str :: ReadM String` with `readFolderPath ::  String -> ReadM FilePath` using their
-`Monad instance`
+Here, we look at how to build a more complex argument parser from
+the simple `str` argument.
 
-<h5 class="codeheader">
-```haskell
-readFolderPath :: String -> ReadM FilePath
-```
-</h5>
-There is some fluff with converting from `String` to `Text` using `T.pack`. The main part of the code
-is in using
-```haskell
-readerError String -> ReadM FilePath
-```
-to report an error when the path given is invalid.
+* The composition of `(str :: ReadM String)`{.haskell}
+with `(readFolderPath ::  String -> ReadM FilePath)`{.haskell}
+using `(>>=)`{.haskell}
+gives us a function that takes a raw string, tries to parse it to a folder
+and fails if the parse fails.
 
-<h5 class="codeheader">
-```haskell
-value :: HasValue f a => a -> Mod f a
-```
-</h5>
-
-We use the `value` modifier to assign a default value to the option. We use "."
-which is the current folder as a default option
+* The `(value :: HasValue f a => a -> Mod f a)`{.haskell} lets us
+define a default value to the "folder" option. We set the default to "."
+(the current folder)
 
 <hr/>
 \begin{code}
@@ -543,11 +527,19 @@ parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 
 \end{code}
 
-we reuse our `tpnameParser :: Parser String` to parse names. We convert them to
-`Command` by first converting them to the correct `{Remove, Goto}Options` type,
-and then using the `Command{Remove, Goto}` constructors
+* `tpnameParser :: Parser String`{.haskell} is used to parse names. 
+* `(CommandRemove . RemoveOptions :: String -> Command)`{.haskell} converts
+`String =RemoveOptions=> RemoveOptions =CommandRemove=> Command`{.latex}
+
+Similary, we created a `(CommandGoto :: Command)`{.haskell} with the same pipeline
 
 <hr/>
+We will start creating data types to hold the data for our program.
+
+* `TpPoint`{.haskell} stores the information of a warp point.
+* `FromJSON`{.haskell} and `ToJSON`{.haskell} typeclasses for
+   `TpPoint` to allow it to store and retreive `JSON`
+
 \begin{code}
 -- an abstract entity representing a point to which we can tp to
 data TpPoint = TpPoint {
@@ -561,52 +553,45 @@ instance JSON.FromJSON TpPoint where
         liftA2 TpPoint (json .: "name")
                   (json .: "absFolderPath")
 
+\end{code}
+
+
+* `FromJSON`{.haskell} is to convert a `JSON` object to a `TpPoint`.
+* `(Object json) :: Value`{.haskell} is our parameter, and we need to creae a `TpPoint`.
+
+* We use the 
+`( (.:) :: FromJSON a => Object -> Text -> Parser a)`{.haskell} operator,
+which when given a `JSON` `Object` and a key, gives us a `Parser a`{.haskell}
+
+* the `Parser` has an applicative instance, so we lift our `TpPoint`{.haskell} 
+to the `Parser`{.haskell} type with `liftA2`
+
+<hr/>
+\begin{code}
 instance JSON.ToJSON TpPoint where
     toJSON (TpPoint {..}) =
         JSON.object [ "name" .= name
                      ,"absFolderPath" .= absFolderPath]
 \end{code}
 
-This is our program representation. The `TpPoint` class stores the
-information of a warp point.
 
+* `(toJSON :: a -> Value)`{.haskell} is used to create a JSON Value from an object
+`a`. For us, the `(a ~ TpPoint)`{.haskell}.
 
-We implement the `FromJSON` and `ToJSON` typeclasses for both
-to allow us to save these as JSON files
+* To create a `Value`, we use
+`(JSON.object :: object :: [Pair] -> Value)`{.haskell}. We give it
+an array of `Pair` objects and it creates a `Value`(JSON Value).
 
-<h5 class="codeheader"> `FromJSON` </h5>
-We are given an `(Object json) :: Value`, and we need to produce a `Parser`
+* We use
+`( (.=) :: ToJSON v => Text -> v -> (kv ~ Pair) )`{.haskell} to pair up a key
+with a `Value`. the `.=`{.haskell} creates any `KeyValue`.
+We use it to create a `Pair`.
 
-```haskell
-(.:) :: FromJSON a => Object -> Text -> Parser a
-```
-We use `(.:)`, which when given a JSON `Object` and the name of a key, gives us a `Parser a`.
-This is used to extract the `name` and the `absFolderPath` from the JSON object.
-
-The constructor for `TpPoint`  is lifed into the `Parser` using `liftA2`
-
-<h5 class="codeheader"> `ToJSON` </h5>
-We need to implement
-```haskell
-toJSON :: a -> Value
-```
-
-To create a `Value`, we use
-```haskell
-JSON.object = object :: [Pair] -> Value
-```
-
-that lets us give it an array of `Pair` objects and it creates a Value.
-We make `Pair` objects using
-
-
-```haskell
-(.=) :: ToJSON v => Text -> v -> (kv ~ Pair)
-```
-the `.=` creates any `KeyValue`. We use it to create a `Pair` from our a tag name
-and a value (which has a `ToJSON` instance)
 
 <hr/>
+We'll write a `TpData` class which stores all the warp points together in a
+list.
+
 \begin{code}
 -- the main data that is loaded from JSON
 data TpData = TpData {
@@ -622,7 +607,6 @@ instance JSON.ToJSON TpData where
         JSON.object ["tpPoints" .= tpPoints]
 \end{code}
 
-The `TpData` class stores all the warp points together.
 
 <hr/>
 \begin{code}
@@ -663,14 +647,9 @@ decodeTpData jsonFilePath = do
       Right json -> return json
 \end{code}
 
-We use
-
-```haskell
-JSON.eitherDecode' ::  FromJSON a => ByteString -> Either String a
-```
-
-which takes a file path and returns an `Either String a` with the error
-in `Left`
+We use `JSON.eitherDecode' ::  FromJSON a => ByteString -> Either String a`{.haskell}
+which takes a file path and returns an `Either String a`{.haskell} with the error
+in `Left`{.haskell}
 
 <hr/>
 \begin{code}
@@ -688,11 +667,8 @@ loadTpData jsonFilePath = do
            return defaultTpData
 \end{code}
 
-we try to load a file. If the file does not exist, we use
-```haskell
-defaultTpData :: TpData
-```
-we save this in the `createTpDataFile`, and then just retrn the default value.
+We try to load a file. If the file does not exist, we use `defaultTpData :: TpData`{.haskell}
+We save this in the `createTpDataFile`, and then just return the default value.
 If we do get a value, then we return the parsed object.
 
 <hr/>
@@ -710,22 +686,36 @@ getTpDataPath = do
     return $ homeFolder </> ".tpdata"
 \end{code}
 
-Note the use of `Turtle` for finding the home folder (`Turtle.home`) and
-to touch files (`Turtle.touch`). We concatenate `FilePath`s using
-
-```haskell
-</> :: FilePath -> FilePath -> FilePath
-``` 
+Note the use of `Turtle`{.haskell} for finding the home folder (`Turtle.home`) and
+to touch files (`Turtle.touch`{.haskell}).
+We concatenate `FilePath`s using `(</> :: FilePath -> FilePath -> FilePath)`{.haskell}
 
 <hr/>
+We're now  writing functions to error out nicely with colors,
+since everybody likes colors `:)`
+
 \begin{code}
 -- Stream Helpers
 -- """"""""""""""
 
+-- set terminal to output error color
 setErrorColor :: IO ()
-setErrorColor = ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]    
+setErrorColor = ANSI.setSGR [ANSI.SetColor -- color to set
+                             ANSI.Foreground -- wherther foreground / background should be affected
+                            ANSI.Vivid -- use the "vivid" color versus the muted color
+                            ANSI.Red -- use red
+                            ]    
+\end{code}
 
+* `setSGR :: [SGR] -> IO ()`{.haskell} lets us color the output. 
+    It takes an array of `SGR` (Select Graphic Rendition) objects, and applies them.
 
+* The `SGR` instance we use in `Teleport` are `SetColor :: ConsoleLayer ColorIntensity Color -> SGR`{.haskell}
+to add colors to our output
+
+<hr/>
+\begin{code}
+-- print a teleport point to stdout
 tpPointPrint :: TpPoint -> IO ()
 tpPointPrint tpPoint = do
     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]
@@ -735,12 +725,15 @@ tpPointPrint tpPoint = do
     putStr (absFolderPath tpPoint)
     putStr "\n"
 
+-- error out that the given folder is not found
 folderNotFoundError :: FilePath -> IO ()
 folderNotFoundError path = do
     setErrorColor  
     let errorstr = T.pack ("unable to find folder: " ++ (show path)) 
     Turtle.die errorstr
 
+-- error out that folder is required, but path points
+-- to a file
 needFolderNotFileError :: FilePath -> IO ()
 needFolderNotFileError path = do
     setErrorColor
@@ -757,6 +750,7 @@ dieIfFolderNotFound path =
         unless folderExists (folderNotFoundError path)
        -- we know the folder exists
 
+-- error out that the teleport point already exists
 dieTpPointExists :: TpPoint -> IO ()
 dieTpPointExists tpPoint  =  do
     setErrorColor
@@ -765,34 +759,23 @@ dieTpPointExists tpPoint  =  do
     Turtle.die ""
 \end{code}
 
-We write functions to error out nicely with colors, since everybody likes colors `:)`
 
-Again, we use turtle for
-```haskell
-Turtle.testdir :: MonadIO io => FilePath -> io Bool
-Turtle.testfile :: MonadIO io => FilePath -> io Bool
-```
+* `Turtle.testdir :: MonadIO io => FilePath -> io Bool`{.haskell} allows us to check
+    if the directory exists
+* `Turtle.testfile :: MonadIO io => FilePath -> io Bool`{.haskell} lets us check if
+    the file exists
+
 to check if the file and folder we care about exists.
 
-We also use the `ANSI` library for coloring the output.
-<h5 class="codeheader">
-```haskell
-setSGR :: [SGR] -> IO ()
-```
-</h5>
 
-It takes an array of `SGR` (Select Graphic Rendition) objects, and applies them.
-
-The ones we use in `Teleport`
-```haskell
-SetColor :: ConsoleLayer ColorIntensity Color -> SGR
-
-ConsoleLayer = Foreground | Background
-ColorIntensity = Dull | Vivid
-Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
-```
-to add colors to our output
 <hr/>
+Now, we're writing the `run` functions that tie everything up. `runAdd`:
+
+* Checks that the teleport point is valid.
+* Checks that there is no other point of the same name.
+
+if both these conditions hold true, it proceeds to create the point
+and save the data.
 \begin{code}
 -- Add command runner
 -- """"""""""""""""""
@@ -824,18 +807,14 @@ runAdd AddOptions{..} = do
                         saveTpData tpDataPath newTpData
 \end{code}
 
-We check if a similar teleport point exists. If it does, we quit using
-`dieIfPointExists`.
-
-If not, we
-
-* create a new teleport point `newTpPoint`
-* add it to the list in `newTpData`
-* save the new data with `saveTpData`.
 
 <hr/>
-\begin{code}
 
+We just iterate over all the teleport points, printing them
+one-by-one. Since we need an "effect" to happen for each `tpPoint`
+(it needs to be printed), we use `(forM_ :: (Monad m, Foldable t) => t a -> (a -> m b) -> m ())`{.haskell}
+to achieve that.
+\begin{code}
 -- List Command
 -- """"""""""""
 
@@ -851,22 +830,15 @@ runList = do
     forM_ (tpPoints tpData) tpPointPrint
 
 \end{code}
-<h5 class="codeheader">
-```haskell
-forM_ :: (Monad m, Foldable t) => t a -> (a -> m b) -> m ()
-```
-</h5>
-the `Foldable` constraint means that the type `t` allows us
-to run "side-effectful" (Monadic `m`) code over the object.
-`[]` is `Foldable`, so we use `forM_` to print all values
-
-We use `forM_` to:
-
-* loop over the list,
-* with monadic effect (IO), hence `M`,
-* ignore the return result (we don't care about the return value), hence `_`
 
 <hr/>
+
+To remove a teleport point:
+
+* check if a teleport point with the name exists
+* If it does, filter it out and save the rest of the points
+* Otherwise, print an error
+
 \begin{code}
 
 -- Remove Command
@@ -901,11 +873,16 @@ runRemove RemoveOptions{..} = do
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
                     putStr "]"
 \end{code}
-
-if there is no teleport point with the given name, we fail.
-If such a teleport point exists, we remove the point by filtering it out
-and then save the JSON file
 <hr/>
+The proces of going to a teleport point is more complex, since our command (`teleport`)
+cannot change the working directory of another process (the shell).
+
+So, we:
+
+* run `teleport` within a shell script (`teleport.sh`)
+* return a special value (`2`) to the person who runs `teleport` (which is `teleport.sh`)
+* have `teleport.sh` execute a `cd` when it detects a return value of `2`.
+
 \begin{code}
 runGoto :: GotoOptions -> IO ()
 runGoto GotoOptions{..} = do
@@ -921,8 +898,6 @@ runGoto GotoOptions{..} = do
 
 \end{code}
 
-Since a process is not allowed to change another process' working directory, `tp goto` cannot
-change the shell's working directory. So, we use a simple shell script (`teleport.sh`)
 <h5 class="codeheader">
 `teleport.sh`
 </h5>
@@ -944,7 +919,10 @@ and returns a return code of `2`. The shell script sees that the return code is 
 it runs a `cd` to the correct path
 
 If `tp` returns any code other than `2`, the shell script echoes all the output to the screen.
+
 <hr/>
+Now, we see all of it together in our `run` function which was called by `main`
+We simply pattern match on the command and then call the correct `run*` function
 \begin{code}
 run :: Command -> IO ()
 run command = 
@@ -954,11 +932,9 @@ run command =
         CommandRemove removeOpt -> runRemove removeOpt
         CommandGoto gotoOpt -> runGoto gotoOpt
 \end{code}
-We simply pattern match on the command and then call the correct `run*` function
 
 
 <h2> Finale and Conclusion </h2>
 
 Hopefully, this gave you a decent overview on how to combine libraries and use
 all of them in Haskell. If there are any bugs/comments,
-<h3> TODO </h3>
