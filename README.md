@@ -6,12 +6,16 @@
 
 
 This tool is written as a basic introduction on writing CLIs in haskell, and a
-practical one at that. I'll be showing
+practical one at that. I'll be showing:
 
 - Parsing command line arguments using `optparse-applicative`
 - Persisting data needed for tools using JSON using `aeson`
 - actually doing something useful using `turtle`
-- uploading to hackage
+
+## Demo
+
+https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr
+[![asciicast](https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr.png)](https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr)
 
 
 # Getting started

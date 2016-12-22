@@ -1,5 +1,11 @@
+<!-- Place this tag in your head or just before your close body tag. -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+
 <h1> Teleport - How to write a small, useful command line application in Haskell</h1>
 
+<a class="github-button" href="https://github.com/bollu/teleport" data-icon="octicon-star" data-style="mega" data-count-href="/bollu/teleport/stargazers" data-count-api="/repos/bollu/teleport#stargazers_count" data-count-aria-label="# stargazers on GitHub" aria-label="Star bollu/teleport on GitHub">Star</a>
+
+<a class="github-button" href="https://github.com/bollu/teleport/fork" data-icon="octicon-repo-forked" data-style="mega" data-count-href="/bollu/teleport/network" data-count-api="/repos/bollu/teleport#forks_count" data-count-aria-label="# forks on GitHub" aria-label="Fork bollu/teleport on GitHub">Fork</a>
 
 We're going to build a command line application called `teleport`,
 It allows people to add "warp points" to navigate the file system. These
@@ -13,10 +19,14 @@ We will be using the libraries:
 * `ANSI`: emit colors in the console
 * `Text` and `Bytestring`: forced to use these because of `Aeson`, `Filepath`
 
+<h3> Demo </h3>
+<script type="text/javascript"
+         src="https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr.js" 
+        id="asciicast-a0rzkn428t6mrnvzquc5fqoyr" async></script>
+
 <h3> Intended audience </h3>
 
 The indented audience are those who are comfortable with
-
 
 * Functor, Applicative, Monad and `do` notation
 * `IO` (no other monads required)
@@ -346,9 +356,9 @@ when the parse fails. It executed the parser passed to it (`parseCommand`)
 
 \begin{code}
 parseCommand :: Parser Command
-parseCommand = subparser
+parseCommand = subparser $
     -- add command
-    ((command
+    (command
         "add" -- command name
         (info -- attach help information to the parser
             (helper <*> parseAddCommand) -- core parser with the --help option
@@ -359,13 +369,19 @@ parseCommand = subparser
 
     -- list command
     (command "list"
-        (info (helper <*> parseListCommand) (fullDesc <> progDesc "list all teleport points"))) <>
+        (info (helper <*> parseListCommand)
+        (fullDesc <> progDesc "list all teleport points"))
+    ) <>
     -- remove command
     (command "remove"
-        (info (helper <*> parseRemoveCommand) (fullDesc <>progDesc "remove a teleport point"))) <>
+        (info (helper <*> parseRemoveCommand)
+        (fullDesc <>progDesc "remove a teleport point"))
+    ) <>
     -- goto command
     (command "goto"
-        (info (helper <*> parseGotoCommand) (fullDesc <> progDesc "go to a created teleport point"))))
+        (info (helper <*> parseGotoCommand)
+        (fullDesc <> progDesc "go to a created teleport point"))
+    )
 
 \end{code}
 the `subparser` is a function that lets us create a `Parser` out of of a
@@ -511,7 +527,8 @@ folderParser = argument
                readFolderPath) -- :: String -> ReadM FilePath
               (value "./"  <>
               metavar "FOLDERPATH" <>
-              help "path of the teleport folder to teleport to. By default, taken as current working directory")
+              help ("path of the teleport folder to teleport to." ++ 
+                   "By default, taken as current working directory"))
 
 \end{code}
 
@@ -577,6 +594,12 @@ which when given a `JSON` `Object` and a key, gives us a `Parser a`{.haskell}
 * the `Parser` has an applicative instance, so we lift our `TpPoint`{.haskell} 
 to the `Parser`{.haskell} type with `liftA2`
 
+
+* Here, we also see `RecordWildCards` (the extension) at play. It automatically
+  "unpacks" the `TpPoint` for us, and we can directly access `name` and `absFoldeerPath`
+
+* The syntax of `{..}`{.haskell} is used to denote that this declaration must 
+  be unpacked
 
 \begin{code}
 instance JSON.ToJSON TpPoint where
@@ -949,4 +972,7 @@ run command =
 <h2> Finale and Conclusion </h2>
 
 Hopefully, this gave you a decent overview on how to combine libraries and use
-all of them in Haskell. If there are any bugs/comments,
+all of them in Haskell. If there are any bugs/comments, please do report them
+at [the github repository](https://github.com/bollu/teleport)
+
+

@@ -17,7 +17,7 @@ body {
     padding: 0.1em;
     margin: auto;
     max-width: 48em;
-    background: #fefefe;
+    background: #eeeeee;
 }
 
 a {
@@ -334,7 +334,7 @@ table td {
 
 div.sourceCode>div.sourceCode, pre {
     overflow-x: scroll;
-    border: 1px solid #DDDDDD;
+    border: 1px solid #CDCDCD;
     padding-left: 2em;
     margin-left: 2em;
 }

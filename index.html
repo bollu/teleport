@@ -46,9 +46,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
   <link rel="stylesheet" href="pandoc.css" type="text/css" />
 </head>
 <body>
+<!-- Place this tag in your head or just before your close body tag. -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
 <h1>
 Teleport - How to write a small, useful command line application in Haskell
 </h1>
+<p><a class="github-button" href="https://github.com/bollu/teleport" data-icon="octicon-star" data-style="mega" data-count-href="/bollu/teleport/stargazers" data-count-api="/repos/bollu/teleport#stargazers_count" data-count-aria-label="# stargazers on GitHub" aria-label="Star bollu/teleport on GitHub">Star</a></p>
+<p><a class="github-button" href="https://github.com/bollu/teleport/fork" data-icon="octicon-repo-forked" data-style="mega" data-count-href="/bollu/teleport/network" data-count-api="/repos/bollu/teleport#forks_count" data-count-aria-label="# forks on GitHub" aria-label="Fork bollu/teleport on GitHub">Fork</a></p>
 <p>We're going to build a command line application called <code>teleport</code>, It allows people to add &quot;warp points&quot; to navigate the file system. These can be added, deleted, listed, and goto'd.</p>
 <p>We will be using the libraries:</p>
 <ul>
@@ -58,6 +62,12 @@ Teleport - How to write a small, useful command line application in Haskell
 <li><code>ANSI</code>: emit colors in the console</li>
 <li><code>Text</code> and <code>Bytestring</code>: forced to use these because of <code>Aeson</code>, <code>Filepath</code></li>
 </ul>
+<h3>
+Demo
+</h3>
+<script type="text/javascript"
+         src="https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr.js" 
+        id="asciicast-a0rzkn428t6mrnvzquc5fqoyr" async></script>
 <h3>
 Intended audience
 </h3>
@@ -259,9 +269,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
 </h5>
 <p>As explained above, it takes a parser and allows it to show help information when the parse fails. It executed the parser passed to it (<code>parseCommand</code>)</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">parseCommand ::</span> <span class="dt">Parser</span> <span class="dt">Command</span>
-parseCommand <span class="fu">=</span> subparser
+parseCommand <span class="fu">=</span> subparser <span class="fu">$</span>
     <span class="co">-- add command</span>
-    ((command
+    (command
         <span class="st">&quot;add&quot;</span> <span class="co">-- command name</span>
         (info <span class="co">-- attach help information to the parser</span>
             (helper <span class="fu">&lt;*&gt;</span> parseAddCommand) <span class="co">-- core parser with the --help option</span>
@@ -272,13 +282,19 @@ parseCommand <span class="fu">=</span> subparser
 
     <span class="co">-- list command</span>
     (command <span class="st">&quot;list&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseListCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;list all teleport points&quot;</span>))) <span class="fu">&lt;&gt;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseListCommand)
+        (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;list all teleport points&quot;</span>))
+    ) <span class="fu">&lt;&gt;</span>
     <span class="co">-- remove command</span>
     (command <span class="st">&quot;remove&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseRemoveCommand) (fullDesc <span class="fu">&lt;&gt;</span>progDesc <span class="st">&quot;remove a teleport point&quot;</span>))) <span class="fu">&lt;&gt;</span>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseRemoveCommand)
+        (fullDesc <span class="fu">&lt;&gt;</span>progDesc <span class="st">&quot;remove a teleport point&quot;</span>))
+    ) <span class="fu">&lt;&gt;</span>
     <span class="co">-- goto command</span>
     (command <span class="st">&quot;goto&quot;</span>
-        (info (helper <span class="fu">&lt;*&gt;</span> parseGotoCommand) (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;go to a created teleport point&quot;</span>))))</code></pre></div>
+        (info (helper <span class="fu">&lt;*&gt;</span> parseGotoCommand)
+        (fullDesc <span class="fu">&lt;&gt;</span> progDesc <span class="st">&quot;go to a created teleport point&quot;</span>))
+    )</code></pre></div>
 <p>the <code>subparser</code> is a function that lets us create a <code>Parser</code> out of of a <code>command</code>. We smash the <code>command</code>s together with their monoid instance (<code>&lt;&gt;</code>).</p>
 <p>The same use of <code>info</code>, <code>fullDesc</code>, <code>progDesc</code>, and <code>helper</code> is made as in <code>main</code> to attach information and help to the parser.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Command parsers</span>
@@ -366,7 +382,8 @@ folderParser <span class="fu">=</span> argument
                readFolderPath) <span class="co">-- :: String -&gt; ReadM FilePath</span>
               (value <span class="st">&quot;./&quot;</span>  <span class="fu">&lt;&gt;</span>
               metavar <span class="st">&quot;FOLDERPATH&quot;</span> <span class="fu">&lt;&gt;</span>
-              help <span class="st">&quot;path of the teleport folder to teleport to. By default, taken as current working directory&quot;</span>)</code></pre></div>
+              help (<span class="st">&quot;path of the teleport folder to teleport to.&quot;</span> <span class="fu">++</span> 
+                   <span class="st">&quot;By default, taken as current working directory&quot;</span>))</code></pre></div>
 <p>Here, we look at how to build a more complex argument parser from the simple <code>str</code> argument.</p>
 <ul>
 <li><p>The composition of <code class="sourceCode haskell">(<span class="ot">str ::</span> <span class="dt">ReadM</span> <span class="dt">String</span>)</code> with <code class="sourceCode haskell">(<span class="ot">readFolderPath ::</span>  <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReadM</span> FilePath)</code> using <code class="sourceCode haskell">(<span class="fu">&gt;&gt;=</span>)</code> gives us a function that takes a raw string, tries to parse it to a folder and fails if the parse fails.</p></li>
@@ -403,6 +420,8 @@ parseGotoCommand <span class="fu">=</span> fmap (<span class="dt">CommandGoto</s
 <li><p><code class="sourceCode haskell">(<span class="dt">Object</span> json)<span class="ot"> ::</span> <span class="dt">Value</span></code> is our parameter, and we need to creae a <code>TpPoint</code>.</p></li>
 <li><p>We use the <code class="sourceCode haskell">(<span class="ot"> (.:) ::</span> <span class="dt">FromJSON</span> a <span class="ot">=&gt;</span> <span class="dt">Object</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> a)</code> operator, which when given a <code>JSON</code> <code>Object</code> and a key, gives us a <code class="sourceCode haskell"><span class="dt">Parser</span> a</code></p></li>
 <li><p>the <code>Parser</code> has an applicative instance, so we lift our <code class="sourceCode haskell"><span class="dt">TpPoint</span></code> to the <code class="sourceCode haskell"><span class="dt">Parser</span></code> type with <code>liftA2</code></p></li>
+<li><p>Here, we also see <code>RecordWildCards</code> (the extension) at play. It automatically &quot;unpacks&quot; the <code>TpPoint</code> for us, and we can directly access <code>name</code> and <code>absFoldeerPath</code></p></li>
+<li><p>The syntax of <code class="sourceCode haskell">{<span class="fu">..</span>}</code> is used to denote that this declaration must be unpacked</p></li>
 </ul>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">JSON.ToJSON</span> <span class="dt">TpPoint</span> <span class="kw">where</span>
     toJSON (<span class="dt">TpPoint</span> {<span class="fu">..</span>}) <span class="fu">=</span>
@@ -670,6 +689,6 @@ run command <span class="fu">=</span>
 <h2>
 Finale and Conclusion
 </h2>
-<p>Hopefully, this gave you a decent overview on how to combine libraries and use all of them in Haskell. If there are any bugs/comments,</p>
+<p>Hopefully, this gave you a decent overview on how to combine libraries and use all of them in Haskell. If there are any bugs/comments, please do report them at <a href="https://github.com/bollu/teleport">the github repository</a></p>
 </body>
 </html>
