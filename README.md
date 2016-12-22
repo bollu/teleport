@@ -14,7 +14,6 @@ practical one at that. I'll be showing:
 
 ## Demo
 
-https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr
 [![asciicast](https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr.png)](https://asciinema.org/a/a0rzkn428t6mrnvzquc5fqoyr)
 
 
