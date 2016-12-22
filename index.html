@@ -312,10 +312,7 @@ $ <span class="kw">tp</span> list
 $ <span class="kw">...</span></code></pre></div>
 <p>Now, we need to learn how to parse <strong>options</strong>, such as:</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">tp</span> add <span class="kw">&lt;</span>warp point name<span class="kw">&gt;</span> ...</code></pre></div>
-<p>to do this, the <strong>general function that is used is <code class="sourceCode haskell">argument</code></strong>.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">argument ::</span> <span class="dt">ReadM</span> a <span class="ot">-&gt;</span> <span class="co">-- in general, &quot;can be read&quot;.</span>
-            <span class="dt">Mod</span> <span class="dt">ArgumentFields</span> a <span class="ot">-&gt;</span> <span class="co">-- modifiers to a parser</span>
-            <span class="dt">Parser</span> a</code></pre></div>
+<p>to do this, the <strong>general function that is used is <code class="sourceCode haskell">argument</code></strong>. <code class="sourceCode haskell"><span class="ot">argument ::</span> <span class="dt">ReadM</span> a <span class="ot">-&gt;</span> <span class="co">-- in general, &quot;can be read&quot;.             Mod ArgumentFields a -&gt; -- modifiers to a parser             Parser a</span></code></p>
 Let's read the code and then come back to the explanation with context:
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- Warp Name parser</span>
 <span class="co">-- &quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;&quot;</span>
