@@ -719,7 +719,7 @@ setErrorColor = ANSI.setSGR [-- color to set
                              -- wherther foreground / background should be affected
                              ANSI.Foreground
                              -- use the "vivid" color versus the muted colord
-                             ANSI.Vivi
+                             ANSI.Vivid
                              -- use red
                              ANSI.Red
                             ]    
