@@ -913,12 +913,12 @@ runRemove RemoveOptions{..} = do
                     putStr "]"
 \end{code}
 
-The proces of going to a teleport point is more complex, since our command (`teleport`)
+The proces of going to a teleport point is slightly different, since  our command (`teleport`)
 cannot change the working directory of another process (the shell).
 
 So, we:
 
-* run `teleport` within a shell script (`teleport.sh`)
+* run `teleport`(the executable) within a shell script (`teleport.sh`)
 * return a special value (`2`) to the person who runs `teleport` (which is `teleport.sh`)
 * have `teleport.sh` execute a `cd` when it detects a return value of `2`.
 
