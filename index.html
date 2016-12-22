@@ -492,10 +492,14 @@ getTpDataPath <span class="fu">=</span> <span class="kw">do</span>
 
 <span class="co">-- set terminal to output error color</span>
 <span class="ot">setErrorColor ::</span> <span class="dt">IO</span> ()
-setErrorColor <span class="fu">=</span> ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="co">-- color to set</span>
-                             <span class="dt">ANSI.Foreground</span> <span class="co">-- wherther foreground / background should be affected</span>
-                            <span class="dt">ANSI.Vivid</span> <span class="co">-- use the &quot;vivid&quot; color versus the muted color</span>
-                            <span class="dt">ANSI.Red</span> <span class="co">-- use red</span>
+setErrorColor <span class="fu">=</span> ANSI.setSGR [<span class="co">-- color to set</span>
+                             <span class="dt">ANSI.SetColor</span>
+                             <span class="co">-- wherther foreground / background should be affected</span>
+                             <span class="dt">ANSI.Foreground</span>
+                             <span class="co">-- use the &quot;vivid&quot; color versus the muted colord</span>
+                             <span class="dt">ANSI.Vivi</span>
+                             <span class="co">-- use red</span>
+                             <span class="dt">ANSI.Red</span>
                             ]    </code></pre></div>
 <ul>
 <li><p><code class="sourceCode haskell"><span class="ot">setSGR ::</span> [<span class="dt">SGR</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code> lets us color the output. It takes an array of <code>SGR</code> (Select Graphic Rendition) objects, and applies them.</p></li>
@@ -569,17 +573,16 @@ runAdd folderPath addname <span class="fu">=</span> <span class="kw">do</span>
         <span class="dt">Just</span> tpPoint <span class="ot">-&gt;</span> dieTpPointExists tpPoint
         <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
                         <span class="kw">let</span> newTpPoint <span class="fu">=</span> <span class="dt">TpPoint</span> {
-                            name <span class="fu">=</span> addname,
-                            absFolderPath <span class="fu">=</span> filePathToString absFolderPath
+                            name<span class="fu">=</span>addname,
+                            absFolderPath<span class="fu">=</span>filePathToString absFolderPath
                         }
 
                         putStrLn <span class="st">&quot;creating teleport point: \n&quot;</span>
                         tpPointPrint newTpPoint
 
                         <span class="kw">let</span> newTpData <span class="fu">=</span> <span class="dt">TpData</span> {
-                             tpPoints <span class="fu">=</span>  newTpPoint<span class="fu">:</span>(tpPoints tpData)   
+                             tpPoints<span class="fu">=</span> newTpPoint<span class="fu">:</span>(tpPoints tpData)   
                         }
-
 
                         saveTpData tpDataPath newTpData</code></pre></div>
 We iterate over all the teleport points, printing them one-by-one. Since we need an &quot;effect&quot; to happen for each <code>tpPoint</code> (it needs to be printed), we use <code class="sourceCode haskell">(<span class="ot">forM_ ::</span> (<span class="dt">Monad</span> m, <span class="dt">Foldable</span> t) <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m ())</code> to achieve that.
@@ -628,11 +631,14 @@ runRemove removeName <span class="fu">=</span> <span class="kw">do</span>
                     }
 
                     saveTpData tpDataPath newTpData
-                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span>
+                                 <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
                     putStr <span class="st">&quot;removed teleport point [&quot;</span>
-                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span>
+                                 <span class="dt">ANSI.Vivid</span> <span class="dt">ANSI.Blue</span>]    
                     putStr removeName
-                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span> <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
+                    ANSI.setSGR [<span class="dt">ANSI.SetColor</span> <span class="dt">ANSI.Foreground</span>
+                                 <span class="dt">ANSI.Dull</span> <span class="dt">ANSI.White</span>]    
                     putStr <span class="st">&quot;]&quot;</span></code></pre></div>
 <p>The proces of going to a teleport point is slightly different, since our command (<code>teleport</code>) cannot change the working directory of another process (the shell).</p>
 <p>So, we:</p>
@@ -658,10 +664,12 @@ runGoto gotoName <span class="fu">=</span> <span class="kw">do</span>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"> <span class="co">#!/bin/bash</span>
  <span class="co"># teleport.sh</span>
 <span class="kw">function</span><span class="fu"> tp()</span> <span class="kw">{</span>
-    <span class="co"># $@ takes all arguments of the shell script and passes it along to `teleport-exe</span>
+    <span class="co"># $@ takes all arguments of the shell script</span>
+    <span class="co"># and passes it along to `teleport-exe`</span>
     <span class="co"># which is our tool</span>
     <span class="ot">OUTPUT=</span><span class="kw">`teleport-exe</span> <span class="ot">$@</span><span class="kw">`</span>
-    <span class="co"># return code 2 tells the shell script to cd to whatever `teleport` outputs</span>
+    <span class="co"># return code 2 tells the shell</span>
+    <span class="co"># script to cd to whatever `teleport` outputs</span>
     <span class="kw">if [</span> <span class="ot">$?</span> <span class="ot">-eq</span> 2<span class="kw"> ]</span>
         <span class="kw">then</span> <span class="kw">cd</span> <span class="st">&quot;</span><span class="ot">$OUTPUT</span><span class="st">&quot;</span>
         <span class="kw">else</span> <span class="kw">echo</span> <span class="st">&quot;</span><span class="ot">$OUTPUT</span><span class="st">&quot;</span>

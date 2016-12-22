@@ -714,10 +714,14 @@ since everybody likes colors `:)`
 
 -- set terminal to output error color
 setErrorColor :: IO ()
-setErrorColor = ANSI.setSGR [ANSI.SetColor -- color to set
-                             ANSI.Foreground -- wherther foreground / background should be affected
-                            ANSI.Vivid -- use the "vivid" color versus the muted color
-                            ANSI.Red -- use red
+setErrorColor = ANSI.setSGR [-- color to set
+                             ANSI.SetColor
+                             -- wherther foreground / background should be affected
+                             ANSI.Foreground
+                             -- use the "vivid" color versus the muted colord
+                             ANSI.Vivi
+                             -- use red
+                             ANSI.Red
                             ]    
 \end{code}
 
@@ -806,17 +810,16 @@ runAdd folderPath addname = do
         Just tpPoint -> dieTpPointExists tpPoint
         Nothing -> do
                         let newTpPoint = TpPoint {
-                            name = addname,
-                            absFolderPath = filePathToString absFolderPath
+                            name=addname,
+                            absFolderPath=filePathToString absFolderPath
                         }
 
                         putStrLn "creating teleport point: \n"
                         tpPointPrint newTpPoint
 
                         let newTpData = TpData {
-                             tpPoints =  newTpPoint:(tpPoints tpData)   
+                             tpPoints= newTpPoint:(tpPoints tpData)   
                         }
-
 
                         saveTpData tpDataPath newTpData
 \end{code}
@@ -880,11 +883,14 @@ runRemove removeName = do
                     }
 
                     saveTpData tpDataPath newTpData
-                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground
+                                 ANSI.Dull ANSI.White]    
                     putStr "removed teleport point ["
-                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground
+                                 ANSI.Vivid ANSI.Blue]    
                     putStr removeName
-                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
+                    ANSI.setSGR [ANSI.SetColor ANSI.Foreground
+                                 ANSI.Dull ANSI.White]    
                     putStr "]"
 \end{code}
 
@@ -919,10 +925,12 @@ runGoto gotoName = do
  #!/bin/bash
  # teleport.sh
 function tp() {
-    # $@ takes all arguments of the shell script and passes it along to `teleport-exe
+    # $@ takes all arguments of the shell script
+    # and passes it along to `teleport-exe`
     # which is our tool
     OUTPUT=`teleport-exe $@`
-    # return code 2 tells the shell script to cd to whatever `teleport` outputs
+    # return code 2 tells the shell
+    # script to cd to whatever `teleport` outputs
     if [ $? -eq 2 ]
         then cd "$OUTPUT"
         else echo "$OUTPUT"

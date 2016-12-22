@@ -336,6 +336,9 @@ div.sourceCode>div.sourceCode, pre {
     overflow-x: auto;
     border: 1px solid #CDCDCD;
     border-radius: 4px;
-    padding-left: 2em;
+    padding-left: 10px;
     margin-left: 2em;
+    background-color: #FFFFFF;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
