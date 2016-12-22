@@ -1,4 +1,3 @@
-<!-- Place this tag in your head or just before your close body tag. -->
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 
 <h1> Teleport - How to write a small, useful command line application in Haskell</h1>
@@ -8,10 +7,11 @@
 <a class="github-button" href="https://github.com/bollu/teleport/fork" data-icon="octicon-repo-forked" data-style="mega" data-count-href="/bollu/teleport/network" data-count-api="/repos/bollu/teleport#forks_count" data-count-aria-label="# forks on GitHub" aria-label="Fork bollu/teleport on GitHub">Fork</a>
 
 We're going to build a command line application called `teleport`,
-It allows people to add "warp points" to navigate the file system. These
-can be added, deleted, listed, and goto'd.
+It allows people to add "warp points" to navigate the file system. The
+warp points support creating new warp points, deleting them, and
+listing them.
 
-We shall use the libraries:
+Libraries used are:
 
 * `optparse-applicative`: parsing command line arguments
 * `Aeson`: reading/writing `JSON`
@@ -64,13 +64,13 @@ the default "warp path" is the current folder.
 <h6> Example Usage </h5>
 
 ```
- # by default, current working directory is used
+ # by default, teleport point is at current working directory
 ~/play/teleport-haskell$ tp add teleport-hs
 creating teleport point:
 
 teleport-hs	/Users/bollu/play/teleport-haskell/
 
- # on providing the path to a teleport point, that path is used
+ # a path can be provided, which is used.
 ~/play/teleport-haskell$ tp add sf ~/play/software-foundations
 creating teleport point:
 
@@ -94,16 +94,15 @@ tp	/Users/bollu/prog/teleport-haskell/
 
 <h4> `tp goto <warp point>` </h4>
 
-Go to the warp point. This is impossible within our application.
-The reason it is impossible is because one process (our application, `teleport`)
+Go to the warp point. This is impossible within our application,
+because one process (our application, `teleport`)
 cannot change the working directory of another application (the shell).
 
-
-So, we have written a simple shell
+So, there is a simple 
 script wrapper around teleport. The wrapper runs inside the shell,
 so a `cd` is able to edit the shell's current working directory
 
-The shell script is called `teleport.sh`
+The shell script, `teleport.sh`
 
 <h6> Example Usage </h6>
 ```
@@ -175,7 +174,7 @@ import Prelude hiding (FilePath)
 import Filesystem.Path.CurrentOS as Path
 \end{code}
 `Turtle` is the haskell library we use to interact with the OS. It has
-a nice set of abstractions for dealing with OS specific stuff.
+a nice set of abstractions for dealing with OS specifics. 
 
 
 We choose to hide `FilePath` since `turtle` (the library for interfacing
@@ -212,7 +211,7 @@ import qualified Data.ByteString.Lazy as B
 
 
 We choose `Text` over `String` since the libraries that we use play along
-nicer with `Text`. `String` is just `[Char]` in haskell, which is quite
+nicer with `Text`. `String` is `[Char]` in haskell, which is
 inefficient since its _literally_ a linked list.
 `Text` uses a more efficient representation of text.
 Text is used internally everywhere in the application to manipulate text.
@@ -229,63 +228,43 @@ the `ANSI` library is used for coloring our outputs.
 
 \begin{code}
 tpProgDesc :: String
-tpProgDesc = "use teleport to quickly setup teleport points and move to these " ++
+tpProgDesc = "use teleport to setup teleport points and move to these " ++
                "when needed"
 
 tpHeader :: String
 tpHeader = "Teleport: move around your filesystem"
 \end{code}
 
-Strings that are used in our library for descriptions. I prefer to keep these
+Strings that are in our library for descriptions. I prefer to keep these
 as constants rather than hard-code them.
 
 
 \begin{code}
 -- the combined datatype representing all tp commands
 data Command = CommandList |
-               CommandAdd AddOptions |
-               CommandRemove RemoveOptions |
-               CommandGoto GotoOptions
+               CommandAdd {
+                    addName :: String,
+                    folderPath :: FilePath
+               } |
+               CommandRemove {
+                    removeName :: String
+               } |
+               CommandGoto {
+                   gotoName :: String
+                }
     deriving (Show)
 \end{code}
 
 The `Command` sum type represents the commands we can call on `teleport`, and 
-we create options datatypes to store the options.
+we create subcommand  datatypes to store the command that was called.
 
-* `AddOptions` needs the name of the warp point to add, and the path to the folder
-* `RemoveOptions` needs the name of the warp point to remove
-* `GotoOptions` needs the name of the warp point to go to
-* `Command` is the data type that allows us to combine all of this
+* `CommandAdd` needs the name of the warp point to add, and the path to the folder
+* `CommandRemove` needs the name of the warp point to remove
+* `CommandGoto` needs the name of the warp point to go to
+* `Command` is the data type that allows us to combine this
    information.
 
 our parser returns a `Command` that tells us what to do.
-
-
-\begin{code}
--- options pased to 'tp add'
-data AddOptions = AddOptions {
-    addname :: String,
-    folderPath :: FilePath
-} deriving (Show)
-\end{code}
-
-`tp add` needs the name of the warp point to add, and the path of the folder
-where it should get added to.
-
-
-\begin{code}
--- options passed to 'tp remove'
-data RemoveOptions = RemoveOptions {
-    removename :: String
-} deriving (Show)
-
--- options parrsed to 'tp goto'
-data GotoOptions = GotoOptions {
-    gotoname :: String
-} deriving(Show)
-\end{code}
-
-
 
 \begin{code}
 -- | A version of 'execParser' which shows full help on error.
@@ -342,7 +321,7 @@ progDesc :: String -> InfoMod a
 header :: String -> InfoMod a
 ```
 </h5>
-all of these allow us to attach `InfoMod` to a `Parser`, which changes the
+These allow us to attach `InfoMod` to a `Parser`, which changes the
 information that is printed with a `Parser`.
 
 They have a `Monoid` instance, and the `<>` is the `mappend` operator that
@@ -389,7 +368,7 @@ parseCommand = subparser $
     )
 
 \end{code}
-the `subparser` is a function that lets us create a `Parser` out of of a
+the `subparser` is a function that lets us create a `Parser` out of a
 `command`. We smash the `command`s together with their monoid instance (`<>`).
 
 The same use of `info`, `fullDesc`, `progDesc`, and `helper` is made as in
@@ -408,44 +387,40 @@ parseListCommand :: Parser Command
 parseListCommand = pure (CommandList)
 \end{code}
 
-the parser needs no options (the `list` command takes no options),
+the parser needs no parameters (the `list` command takes no options),
 so we use `(pure :: a -> f a)`{.haskell} to convert `(CommandList :: Command)`{.haskell}
 to `(pure CommandList :: Parser Command)`{.haskell}
 
 
 \begin{code}
 parseAddCommand :: Parser Command
-parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Parser Command
-                   CommandAdd -- :: AddOptions -> Command
-                   (liftA2 -- :: (String -> FilePath -> AddOptions) ->
-                           --       Parser String -> Parser FilePath -> Parser AddOptions
-                        AddOptions -- :: String -> FilePath -> AddOptions
+parseAddCommand = 
+                   (liftA2
+                        CommandAdd  -- :: String -> FilePath -> Commandd
                         tpnameParser -- :: Parser String
                         folderParser -- :: Parser FilePath
                    )
 \end{code}
 
 we use
-`(liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions)`{.haskell}
+`(liftA2 CommandAdd :: Parser String -> Parser FilePath -> Parser CommandAdd)`{.haskell}
 and we pass it two parsers `tpNameParser` and `folderParser` (which is defined below)
-to create a `Parser AddOptions`{.haskell}.
-
-we then convert `(Parser AddOptions)`{.haskell} to `(Parser Command)`{.haskell}
-by using `(fmap CommandAdd :: Parser AddOptions -> Parser Command)`{.haskell}
+to create a `Parser Command`{.haskell}.
 
 
 
-Till now, we were creating "command" parsers that parse things like
+Till now, we were creating "command" parsers that parse:
 ```bash
 $ tp add
 $ tp list
+$ ...
 ```
 
 Now, we need to learn how to parse __options__, such as:
 ```bash
 $ tp add <warp point name> ...
 ```
-to do this, the __general function that is used is called `argument`{.haskell}__.
+to do this, the __general function that is used is `argument`{.haskell}__.
 ```haskell
 argument :: ReadM a -> -- in general, "can be read".
             Mod ArgumentFields a -> -- modifiers to a parser
@@ -553,16 +528,16 @@ define a default value to the "folder" option. We set the default to "."
 
 \begin{code}
 parseRemoveCommand :: Parser Command
-parseRemoveCommand = fmap (CommandRemove . RemoveOptions) tpnameParser
+parseRemoveCommand = fmap CommandRemove tpnameParser
 
 parseGotoCommand :: Parser Command
-parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
+parseGotoCommand = fmap CommandGoto tpnameParser
 
 \end{code}
 
 * `tpnameParser :: Parser String`{.haskell} is used to parse names. 
-* `(CommandRemove . RemoveOptions :: String -> Command)`{.haskell} converts
-`String =RemoveOptions=> RemoveOptions =CommandRemove=> Command`{.latex}
+* `(CommandRemove  :: String -> Command)`{.haskell} converts
+`String =CommandRemove=> Command`{.latex}
 
 Similary, we created a `(CommandGoto :: Command)`{.haskell} with the same pipeline
 
@@ -707,7 +682,7 @@ loadTpData jsonFilePath = do
 \end{code}
 
 We try to load a file. If the file does not exist, we use `defaultTpData :: TpData`{.haskell}
-We save this in the `createTpDataFile`, and then just return the default value.
+We save this in the `createTpDataFile`, and then return the default value.
 If we do get a value, then we return the parsed object.
 
 
@@ -819,8 +794,8 @@ and save the data.
 -- Add command runner
 -- """"""""""""""""""
 
-runAdd :: AddOptions -> IO ()
-runAdd AddOptions{..} = do
+runAdd :: FilePath -> String -> IO ()
+runAdd folderPath addname = do
     dieIfFolderNotFound folderPath
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
@@ -849,7 +824,7 @@ runAdd AddOptions{..} = do
 
 
 
-We just iterate over all the teleport points, printing them
+We iterate over all the teleport points, printing them
 one-by-one. Since we need an "effect" to happen for each `tpPoint`
 (it needs to be printed), we use `(forM_ :: (Monad m, Foldable t) => t a -> (a -> m b) -> m ())`{.haskell}
 to achieve that.
@@ -889,16 +864,16 @@ dieTpPointNotFound name = do
     let errorname = T.pack (name ++ " tp point not found")
     Turtle.die errorname
 
-runRemove :: RemoveOptions -> IO ()
-runRemove RemoveOptions{..} = do
+runRemove :: String -> IO ()
+runRemove removeName = do
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
 
-    let wantedTpPoint = find (\tp -> name tp == removename) (tpPoints tpData)
+    let wantedTpPoint = find (\tp -> name tp == removeName) (tpPoints tpData)
     case wantedTpPoint of
-        Nothing -> dieTpPointNotFound removename
+        Nothing -> dieTpPointNotFound removeName
         Just _ ->  do
-                    let newTpPoints = filter (\tp -> name tp /= removename)
+                    let newTpPoints = filter (\tp -> name tp /= removeName)
                                                (tpPoints tpData)
                     let newTpData = tpData {
                         tpPoints = newTpPoints
@@ -908,7 +883,7 @@ runRemove RemoveOptions{..} = do
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
                     putStr "removed teleport point ["
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]    
-                    putStr removename
+                    putStr removeName
                     ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Dull ANSI.White]    
                     putStr "]"
 \end{code}
@@ -923,14 +898,14 @@ So, we:
 * have `teleport.sh` execute a `cd` when it detects a return value of `2`.
 
 \begin{code}
-runGoto :: GotoOptions -> IO ()
-runGoto GotoOptions{..} = do
+runGoto :: String -> IO ()
+runGoto gotoName = do
     tpDataPath <- getTpDataPath
     tpData <- loadTpData tpDataPath
 
-    let wantedTpPoint = find (\tp -> name tp == gotoname) (tpPoints tpData)
+    let wantedTpPoint = find (\tp -> name tp == gotoName) (tpPoints tpData)
     case wantedTpPoint of
-        Nothing -> dieTpPointNotFound gotoname
+        Nothing -> dieTpPointNotFound gotoName
         Just tpPoint -> do
                              Turtle.echo (T.pack (absFolderPath tpPoint))
                              Turtle.exit (Turtle.ExitFailure 2) 
@@ -944,9 +919,10 @@ runGoto GotoOptions{..} = do
  #!/bin/bash
  # teleport.sh
 function tp() {
+    # $@ takes all arguments of the shell script and passes it along to `teleport-exe
+    # which is our tool
     OUTPUT=`teleport-exe $@`
-    # return code 2 is used to indicate that the shell script
-    # should use the output to warp to
+    # return code 2 tells the shell script to cd to whatever `teleport` outputs
     if [ $? -eq 2 ]
         then cd "$OUTPUT"
         else echo "$OUTPUT"
@@ -967,10 +943,10 @@ We simply pattern match on the command and then call the correct `run*` function
 run :: Command -> IO ()
 run command = 
     case command of
-        CommandAdd addOpt -> runAdd addOpt
+        CommandAdd{..} -> runAdd folderPath addName
         CommandList -> runList
-        CommandRemove removeOpt -> runRemove removeOpt
-        CommandGoto gotoOpt -> runGoto gotoOpt
+        CommandRemove{..} -> runRemove removeName
+        CommandGoto{..} -> runGoto gotoName
 \end{code}
 
 

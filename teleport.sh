@@ -1,10 +1,10 @@
-#!/bin/bash
-# teleport.sh
-
+ #!/bin/bash
+ # teleport.sh
 function tp() {
+    # $@ takes all arguments of the shell script and passes it along to `teleport-exe
+    # which is our tool
     OUTPUT=`teleport-exe $@`
-    # return code 2 is used to indicate that the shell script
-    # should use the output to warp to
+    # return code 2 tells the shell script to cd to whatever `teleport` outputs
     if [ $? -eq 2 ]
         then cd "$OUTPUT"
         else echo "$OUTPUT"
