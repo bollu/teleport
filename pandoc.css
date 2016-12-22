@@ -333,8 +333,9 @@ table td {
 }
 
 div.sourceCode>div.sourceCode, pre {
-    overflow-x: scroll;
+    overflow-x: auto;
     border: 1px solid #CDCDCD;
+    border-radius: 4px;
     padding-left: 2em;
     margin-left: 2em;
 }

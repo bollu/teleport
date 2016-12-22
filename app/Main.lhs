@@ -11,7 +11,7 @@ We're going to build a command line application called `teleport`,
 It allows people to add "warp points" to navigate the file system. These
 can be added, deleted, listed, and goto'd.
 
-We will be using the libraries:
+We shall use the libraries:
 
 * `optparse-applicative`: parsing command line arguments
 * `Aeson`: reading/writing `JSON`
@@ -32,7 +32,7 @@ The indented audience are those who are comfortable with
 * `IO` (no other monads required)
 * general haskell patterns
 
-You will learn to use Haskell libraries, and put them together to build something
+You'll see Haskell libraries in action, and put them together to build something
 tangible.
 
 <h3> Getting the code </h3>
@@ -94,9 +94,14 @@ tp	/Users/bollu/prog/teleport-haskell/
 
 <h4> `tp goto <warp point>` </h4>
 
-go to the warp point. This is complicated, since we are not allowed to change
-the working directory of the shell. So, we will write a simple shell
-script wrapper around teleport.
+Go to the warp point. This is impossible within our application.
+The reason it is impossible is because one process (our application, `teleport`)
+cannot change the working directory of another application (the shell).
+
+
+So, we have written a simple shell
+script wrapper around teleport. The wrapper runs inside the shell,
+so a `cd` is able to edit the shell's current working directory
 
 The shell script is called `teleport.sh`
 
@@ -253,7 +258,7 @@ we create options datatypes to store the options.
 * `Command` is the data type that allows us to combine all of this
    information.
 
-our parser will return a `Command` that tells us what to do.
+our parser returns a `Command` that tells us what to do.
 
 
 \begin{code}
@@ -422,7 +427,7 @@ parseAddCommand = fmap -- :: (AddOptions -> Command) -> Parser AddOptions -> Par
 
 we use
 `(liftA2 AddOptions :: Parser String -> Parser FilePath -> Parser AddOptions)`{.haskell}
-and we pass it two parsers `tpNameParser` and `folderParser` (which will be defined below)
+and we pass it two parsers `tpNameParser` and `folderParser` (which is defined below)
 to create a `Parser AddOptions`{.haskell}.
 
 we then convert `(Parser AddOptions)`{.haskell} to `(Parser Command)`{.haskell}
@@ -462,7 +467,7 @@ tpnameParser = argument  -- :: ReadM String -> Mod ArgumentFields String -> Pars
 
 <h5> Types </h5>
 
-* `ReadM a`{.haskell} is a way to "read something in". We will start with
+* `ReadM a`{.haskell} is a way to "read something in". Let's start with
 the `ReadM` instance
 `(str :: ReadM String)`{.haskell}
 and use the `Functor` and `Monad` instance on `str` create new `ReadM` instances. [For more on
@@ -562,7 +567,7 @@ parseGotoCommand = fmap (CommandGoto . GotoOptions) tpnameParser
 Similary, we created a `(CommandGoto :: Command)`{.haskell} with the same pipeline
 
 
-We will start creating data types to hold the data for our program.
+We have created data types to store the data for our app.
 
 * `TpPoint`{.haskell} stores the information of a warp point.
 * `FromJSON`{.haskell} and `ToJSON`{.haskell} typeclasses for
@@ -650,8 +655,8 @@ defaultTpData = TpData {
 }
 \end{code}
 
-the `defaultTpData` represents the default `TpData` we will use if no
-warp data is found on execution.
+the `defaultTpData` represents the default `TpData` that is used
+if no previously saved data is found (esentially, a fresh start)
 
 \begin{code}
 filePathToString :: FilePath -> String
