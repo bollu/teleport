@@ -197,6 +197,7 @@ import Control.Monad
 import Data.Traversable
 import Data.Maybe
 import Data.List
+import Data.Monoid
 \end{code}
 These are our default imports of standard library stuff.
 
@@ -396,7 +397,7 @@ to `(pure CommandList :: Parser Command)`{.haskell}
 parseAddCommand :: Parser Command
 parseAddCommand = 
                    (liftA2
-                        CommandAdd  -- :: String -> FilePath -> Commandd
+                        CommandAdd  -- :: String -> FilePath -> Command
                         tpnameParser -- :: Parser String
                         folderParser -- :: Parser FilePath
                    )
@@ -913,7 +914,7 @@ runGoto gotoName = do
     case wantedTpPoint of
         Nothing -> dieTpPointNotFound gotoName
         Just tpPoint -> do
-                             Turtle.echo (T.pack (absFolderPath tpPoint))
+                             Turtle.echo (Turtle.unsafeTextToLine (T.pack (absFolderPath tpPoint)))
                              Turtle.exit (Turtle.ExitFailure 2) 
 
 \end{code}
