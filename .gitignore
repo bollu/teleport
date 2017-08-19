@@ -16,3 +16,6 @@ cabal.sandbox.config
 .stack-work/
 *.swp
 tags
+
+# vim
+*~
