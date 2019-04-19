@@ -5,7 +5,7 @@ description:
     A tool to quickly switch between directories 
     Please see README.md for more details
 homepage:            https://github.com/bollu/teleport#readme
-license:             MIT
+license:             BSD3
 license-file:        LICENSE
 author:              Siddharth Bhat
 maintainer:          siddu.druid@gmail.com
